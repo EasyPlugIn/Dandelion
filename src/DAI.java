@@ -3,7 +3,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class DAI {
-
+	
+	public static abstract class IDA_Manager {
+	
+		public abstract void search();
+		public abstract void init();
+		public abstract void connect();
+		public abstract void read();
+		public abstract void write(double data, String frature);
+		public abstract void disconnect();
+	
+	}
+	
 	public static void init() {
 		
 		IDA_Manager dandelion_ida_manager =  new IDA_Manager() {
