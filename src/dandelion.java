@@ -1,23 +1,24 @@
 import processing.core.PApplet;
+import DAN.DAN;
 
 
 @SuppressWarnings("serial")
 public class dandelion extends PApplet {
-	int LINE_WEIGHT = 1500;
-	int WIDTH = 1000;
-	int HEIGHT = WIDTH * 2 / 3;
-	float SCALE = WIDTH / 900f;
-    float UNIT = 3f;					// unit size
-    float A = (2.5f + 2 * UNIT);			// short side
-    float B = A / sin(radians(45));		// long side
-    int ALPHA_MAX = 1000;
-    int PARAMETER = 18;
+	final int LINE_WEIGHT = 1500;
+	final int WIDTH = 1000;
+	final int HEIGHT = WIDTH * 2 / 3;
+	final float WINDOW_SIZE_SCALE = WIDTH / 900f;
+	final float UNIT = 3f;					// unit size
+	final float A = (2.5f + 2 * UNIT);			// short side
+	final float B = A / sin(radians(45));		// long side
+	final int ALPHA_MAX = 1000;
+	final int PARAMETER = 18;
     
-    static double scale;
-    static double angle;
+    static float scale;
+    static float angle;
     
 
-    float posX, posY, nX, nY;
+    float posX, posY;
     int delay = 150;
     float r = 1;						// rotate parameter
     float count_r = 30f;				// rotate angle
@@ -88,10 +89,13 @@ public class dandelion extends PApplet {
     /****^^^ class Can ^^^******/
     /***************************/
 
-    private void set_nx_ny (float new_nx, float new_ny) {
-        nX = new_nx;
-        nY = new_ny;
-        println("(nX, nY): (" + nX + "," + nY + ")");
+    private void set_angle_scale (float new_angle, float new_scale) {
+        angle = new_angle;
+        scale = new_scale;
+//    	// scale [0, 1] to window size
+//    	angle *= WIDTH;
+//    	scale *= HEIGHT;
+        println("(angle, scale): (" + angle + "," + scale + ")");
     }
 
 
@@ -107,16 +111,6 @@ public class dandelion extends PApplet {
         DAI.init();
         
     }
-    
-    public static void write(double data, String feature) {
-    	if(feature.equals("Scale")) {
-    	    dandelion.scale = data;
-    	}
-    	else if(feature.equals("Angle")) {
-    	    dandelion.angle = data;
-    	}
-    	
-    }
 
     @Override
     public void stop() {
@@ -127,8 +121,9 @@ public class dandelion extends PApplet {
 
     @Override
     public void draw(){
-        posX += (nX - posX) / delay;
-		deltaY = (nY - posY) / delay;
+    	
+        posX += (angle * WIDTH - posX) / delay;
+		deltaY = (scale * HEIGHT - posY) / delay;
         posY += deltaY;
 
         scale(2);
@@ -144,7 +139,7 @@ public class dandelion extends PApplet {
         rule = 1.45f-((posY / (float) width) * 100f)/130;
 
         translate(width/4, height/3.65f);
-        line(0,0,0,1000 * SCALE);
+        line(0,0,0,1000 * WINDOW_SIZE_SCALE);
 
         angle_branch(0, PARAMETER);
     }
@@ -185,26 +180,26 @@ public class dandelion extends PApplet {
 //            print(local_level +"|");
             
         	stroke( can[local_level-1].alpha * 0.3f, LINE_WEIGHT);
-            line(0, 0, A * SCALE, 0);
-            line(0, 0, -b_x * SCALE, -b_y * SCALE);
-            line(0, 0, target_x * SCALE, target_y * SCALE);//parameter
-            translate(target_x * SCALE, target_y * SCALE);
+            line(0, 0, A * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, -b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
+            line(0, 0, target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);//parameter
+            translate(target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
             rotate(radians(2*degree_a-60));
-            line(0, 0, A * SCALE,0);
-            line(0, 0, -b_x * SCALE,b_y * SCALE);
+            line(0, 0, A * WINDOW_SIZE_SCALE,0);
+            line(0, 0, -b_x * WINDOW_SIZE_SCALE,b_y * WINDOW_SIZE_SCALE);
             angle_branch(local_level, branch_length_vr);   
             popMatrix();
             pushMatrix();
             rotate(radians(count_r));
             
         	stroke( can[local_level-1].alpha * 0.3f, LINE_WEIGHT);
-            line(0, 0, -A * SCALE, 0);
-            line(0, 0, b_x * SCALE, -b_y * SCALE);
-            line(0, 0, -target_x * SCALE, target_y * SCALE);//parameter
-            translate(-target_x * SCALE, target_y * SCALE);
+            line(0, 0, -A * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
+            line(0, 0, -target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);//parameter
+            translate(-target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
             rotate(-radians(2*degree_a-60));
-            line(0, 0, -A * SCALE, 0);
-            line(0, 0, b_x * SCALE, b_y * SCALE);
+            line(0, 0, -A * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, b_x * WINDOW_SIZE_SCALE, b_y * WINDOW_SIZE_SCALE);
             angle_branch(local_level, branch_length_vr);   
             popMatrix();
         } else {
@@ -217,8 +212,8 @@ public class dandelion extends PApplet {
     @Override
     public void mouseMoved() {
         //if(mouseFlag) {
-        set_nx_ny(mouseX, mouseY);
-        println("mouse: " + nX + "," + nY);
+        set_angle_scale((float)mouseX / (float)WIDTH, (float)mouseY / (float)HEIGHT);
+        println("mouse: " + angle + "," + scale);
         //}
     }
 

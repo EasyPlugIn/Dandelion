@@ -1,6 +1,14 @@
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import DAN.DAN;
 
 public class DAI {
 	
@@ -45,9 +53,15 @@ public class DAI {
 
 			@Override
 			public void write(double data, String feature) {
-				// TODO Auto-generated method stub
-				dandelion.write(data, feature);
-				
+		    	if(feature.equals("Scale")) {
+			    	logging("Update feature "+ feature +": "+ data);
+		    	    dandelion.scale = (float) data;
+		    	} else if(feature.equals("Angle")) {
+			    	logging("Update feature "+ feature +": "+ data);
+		    	    dandelion.angle = (float) data;
+		    	} else {
+		    		return;
+		    	}
 			}
 
 			@Override
@@ -61,11 +75,11 @@ public class DAI {
 		   final DAN.Subscriber odf_subscriber = new DAN.Subscriber () {
 	        	public void odf_handler (DAN.ODFObject odf_object) {
 	        		DAN.Data newest = odf_object.dataset.newest();
+	            	logging("new data: "+ odf_object.feature +", "+ newest.data);
 	                if(odf_object.feature.equals("Scale")) {
 	                    dandelion_ida_manager.write(newest.data.getDouble(0), "Scale");
-	                }
-	                if(odf_object.feature.equals("Angle")) {
-	                    dandelion_ida_manager.write(newest.data.getDouble(1), "Angle");
+	                } else if(odf_object.feature.equals("Angle")) {
+	                    dandelion_ida_manager.write(newest.data.getDouble(0), "Angle");
 	                }
 	        	}
 	        };
@@ -91,14 +105,15 @@ public class DAI {
 	        DAN.subscribe("Control_channel", event_subscriber);
 	        JSONObject profile = new JSONObject();
 	        try {
-		        profile.put("d_name", "Dandelion"+ DAN.get_mac_addr());
+		        profile.put("d_name", "Dandelion"+ get_mac_addr());
 		        profile.put("dm_name", "Dandelion");
 		        JSONArray feature_list = new JSONArray();
-	        	feature_list.put("Growth");
+	        	feature_list.put("Scale");
+	        	feature_list.put("Angle");
 		        profile.put("df_list", feature_list);
 		        profile.put("u_name", "yb");
 		        profile.put("is_sim", false);
-		        DAN.register(DAN.get_d_id(DAN.get_mac_addr()), profile);
+		        DAN.register("http://localhost:9999", DAN.get_d_id(DAN.get_clean_mac_addr(get_mac_addr())), profile);
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -114,5 +129,46 @@ public class DAI {
 	        	}
 	        });
 	}
+
+	static String mac_addr_cache = "";
+    static public String get_mac_addr () {
+    	if (!mac_addr_cache.equals("")) {
+    		logging("Mac address cache: "+ mac_addr_cache);
+    		return mac_addr_cache;
+    	}
+    	
+    	InetAddress ip;
+    	try {
+    		ip = InetAddress.getLocalHost();
+    		System.out.println("Current IP address : " + ip.getHostAddress());
+    		NetworkInterface network = NetworkInterface.getByInetAddress(ip);
+    		byte[] mac = network.getHardwareAddress();
+    		mac_addr_cache += String.format("%02X", mac[0]);
+    		for (int i = 1; i < mac.length; i++) {
+    			mac_addr_cache += String.format(":%02X", mac[i]);
+    		}
+    		logging(mac_addr_cache);
+    		return mac_addr_cache;
+    	} catch (UnknownHostException e) {
+    		e.printStackTrace();
+    	} catch (SocketException e){
+    		e.printStackTrace();
+    	}
+
+		logging("Mac address cache retriving failed, use random string");
+        Random rn = new Random();
+        for (int i = 0; i < 12; i++) {
+            int a = rn.nextInt(16);
+            mac_addr_cache += "0123456789abcdef".charAt(a);
+        }
+        return mac_addr_cache;
+    }
+
+    static private String log_tag = "Dandelion";
+    static private final String local_log_tag = "DAI";
+    static private void logging (String message) {
+		String padding = message.startsWith(" ") || message.startsWith("[") ? "" : " ";
+        System.out.printf("[%s][%s]%s%s%n", log_tag, local_log_tag, padding, message);
+    }
 	
 }
