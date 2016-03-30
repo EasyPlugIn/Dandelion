@@ -1,7 +1,3 @@
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import processing.core.PApplet;
 
 
@@ -245,7 +241,7 @@ public class dandelion extends PApplet {
     }
 
     public static void main(String[] args) {
-        PApplet.main(new String[] { "IDA" });
+        PApplet.main(new String[] { "dandelion" });
     }
 	
     static private void logging (String message) {

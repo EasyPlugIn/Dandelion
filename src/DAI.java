@@ -17,7 +17,7 @@ public class DAI {
 	
 	public static void init() {
 		
-		IDA_Manager dandelion_ida_manager =  new IDA_Manager() {
+		final IDA_Manager dandelion_ida_manager =  new IDA_Manager() {
 
 			@Override
 			public void search() {
@@ -58,7 +58,7 @@ public class DAI {
 			
 		};
 		
-		   DAN.Subscriber odf_subscriber = new DAN.Subscriber () {
+		   final DAN.Subscriber odf_subscriber = new DAN.Subscriber () {
 	        	public void odf_handler (DAN.ODFObject odf_object) {
 	        		DAN.Data newest = odf_object.dataset.newest();
 	                if(odf_object.feature.equals("Scale")) {
