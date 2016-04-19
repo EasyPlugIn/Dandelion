@@ -6,9 +6,10 @@ public abstract class IDAManager {
     static private final Set<Subscriber> event_subscribers = Collections.synchronizedSet(new HashSet<Subscriber>());
     
     static public enum EventTag {
-        START_SEARCHING,
+        INITIALIZATION_FAILED,
+        SEARCHING_STARTED,
         FOUND_NEW_IDA,
-        STOP_SEARCHING,
+        SEARCHING_STOPPED,
         CONNECTION_FAILED,
         CONNECTED,
         DISCONNECTION_FAILED,
