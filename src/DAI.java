@@ -73,6 +73,7 @@ public class DAI {
 				logging("Update feature "+ feature +": "+ data);
 				dandelion.angle = (float) data;
 			} else {
+				handle_error("Feature '"+ feature +"' not found")
 				return;
 			}
 		}
