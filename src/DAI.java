@@ -17,12 +17,13 @@ public class DAI {
 	static final IDAManager.Subscriber ida_event_subscriber = new IDAEventSubscriber();
 
 	public static void init() {
-		dandelion_ida_manager.init();
 		dandelion_ida_manager.subscribe(ida_event_subscriber);
 		dandelion_ida_manager.search();
 	}
 	
-	static class DandelionIDAManager extends IDAManager {
+	static class DandelionIDAManager implements IDAManager {
+		IDAManager.Subscriber subscriber;
+		
 		class DandelionIDA extends IDAManager.IDA {
 			public String name;
 
@@ -43,13 +44,10 @@ public class DAI {
 	            return this.name.equals(another.name);
 	        }
 		}
-		
-		@Override
-		public void init () {}
 
 		@Override
 		public void search() {
-			broadcast_event(IDAManager.EventTag.FOUND_NEW_IDA, new DandelionIDA("Dandelion"));
+			subscriber.on_event(IDAManager.EventTag.FOUND_NEW_IDA, new DandelionIDA("Dandelion"));
 		}
 
 		@Override
@@ -57,7 +55,7 @@ public class DAI {
 
 		@Override
 		public void connect(IDA ida) {
-			broadcast_event(IDAManager.EventTag.CONNECTED, ida);
+			subscriber.on_event(IDAManager.EventTag.CONNECTED, ida);
 		}
 
 		@Override
@@ -80,9 +78,19 @@ public class DAI {
 
 		@Override
 		public void disconnect() {}
+
+		@Override
+		public void subscribe(Subscriber s) {
+			subscriber = s;
+		}
+
+		@Override
+		public void unsubscribe(Subscriber s) {
+			subscriber = null;
+		}
 	}
 	
-	static class IDAEventSubscriber extends DandelionIDAManager.Subscriber {
+	static class IDAEventSubscriber implements IDAManager.Subscriber {
 		@Override
 		public void on_event(IDAManager.EventTag event_tag, Object message) {
 			switch (event_tag) {
@@ -95,7 +103,7 @@ public class DAI {
 				DAN.subscribe("Control_channel", dan_event_subscriber);
 				JSONObject profile = new JSONObject();
 				try {
-					profile.put("d_name", "Dandelion"+ get_mac_addr());
+					profile.put("d_name", "Dandelion"+ DAN.get_clean_mac_addr(get_mac_addr()));
 					profile.put("dm_name", "Dandelion");
 					JSONArray feature_list = new JSONArray();
 					feature_list.put("Scale");
