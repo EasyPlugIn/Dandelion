@@ -162,7 +162,7 @@ public class DAI {
 	}
 	
 	static class DANEventSubscriber extends DAN.Subscriber {
-		public void odf_handler (DAN.ODFObject odf_object) {
+		public void odf_handler (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event_tag) {
 			case REGISTER_FAILED:
 				handle_error("Register failed: "+ odf_object.message);
@@ -181,17 +181,16 @@ public class DAI {
 	
 	static class ODFSubscriber extends DAN.Subscriber {
 		@Override
-		public void odf_handler(ODFObject odf_object) {
-			DAN.Data newest = odf_object.dataset.newest();
-			logging("new data: "+ odf_object.feature +", "+ newest.data);
-			if(odf_object.feature.equals("Scale")) {
-				IDACommand ida_command = new IDACommand("Scale", newest.data.getDouble(0));
+		public void odf_handler (String feature, DAN.ODFObject odf_object) {
+			logging("New data: "+ feature +", "+ odf_object.data.toString());
+			if(feature.equals("Scale")) {
+				IDACommand ida_command = new IDACommand("Scale", odf_object.data.getDouble(0));
 				dandelion_ida_manager.write(ida_command.toBytes());
-			} else if(odf_object.feature.equals("Angle")) {
-				IDACommand ida_command = new IDACommand("Angle", newest.data.getDouble(0));
+			} else if(feature.equals("Angle")) {
+				IDACommand ida_command = new IDACommand("Angle", odf_object.data.getDouble(0));
 				dandelion_ida_manager.write(ida_command.toBytes());
 			} else {
-				handle_error("Feature '"+ odf_object.feature +"' not found");
+				handle_error("Feature '"+ feature +"' not found");
 			}
 		}
 	}
