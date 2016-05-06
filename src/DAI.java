@@ -17,6 +17,7 @@ public class DAI {
 	static final IDAManager.Subscriber ida_event_subscriber = new IDAEventSubscriber();
 
 	public static void init() {
+	    logging(DAN.version);
 		dandelion_ida_manager.subscribe(ida_event_subscriber);
 		dandelion_ida_manager.search();
 	}
@@ -66,10 +67,10 @@ public class DAI {
 			
 			if(feature.equals("Scale")) {
 				logging("Update feature "+ feature +": "+ data);
-				dandelion.scale = (float) data;
+				dandelion.target_scale = (float) data;
 			} else if(feature.equals("Angle")) {
 				logging("Update feature "+ feature +": "+ data);
-				dandelion.angle = (float) data;
+				dandelion.target_angle = (float) data;
 			} else {
 				handle_error("Feature '"+ feature +"' not found");
 				return;
@@ -99,11 +100,10 @@ public class DAI {
 				break;
 			case CONNECTED:
 				DAN.Subscriber dan_event_subscriber = new DANEventSubscriber();
-				DAN.init("Dandelion");
-				DAN.subscribe("Control_channel", dan_event_subscriber);
+				DAN.init("Dandelion", dan_event_subscriber);
 				JSONObject profile = new JSONObject();
 				try {
-					profile.put("d_name", "Dandelion"+ DAN.get_clean_mac_addr(get_mac_addr()));
+					profile.put("d_name", "Dandelion001");
 					profile.put("dm_name", "Dandelion");
 					JSONArray feature_list = new JSONArray();
 					feature_list.put("Scale");
@@ -111,7 +111,7 @@ public class DAI {
 					profile.put("df_list", feature_list);
 					profile.put("u_name", "yb");
 					profile.put("is_sim", false);
-					DAN.register("http://localhost:9999", DAN.get_d_id(DAN.get_clean_mac_addr(get_mac_addr())), profile);
+					DAN.register("http://localhost:9999", "Dandelion001", profile);
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
@@ -163,7 +163,7 @@ public class DAI {
 	
 	static class DANEventSubscriber extends DAN.Subscriber {
 		public void odf_handler (String feature, DAN.ODFObject odf_object) {
-			switch (odf_object.event_tag) {
+			switch (odf_object.event) {
 			case REGISTER_FAILED:
 				handle_error("Register failed: "+ odf_object.message);
 				break;
