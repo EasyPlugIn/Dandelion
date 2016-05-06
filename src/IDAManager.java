@@ -1,5 +1,5 @@
 public interface IDAManager {
-    public enum EventTag {
+    public enum Event {
         INITIALIZATION_FAILED,
         INITIALIZED,
         SEARCHING_STARTED,
@@ -14,7 +14,7 @@ public interface IDAManager {
     }
 
     public interface Subscriber {
-        abstract public void on_event(final EventTag event_tag, final Object message);
+        abstract public void on_event(final Event event, final Object message);
     }
 
     public abstract class IDA {

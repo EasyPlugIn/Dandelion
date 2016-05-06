@@ -1,9 +1,11 @@
+import java.util.HashMap;
+
 import processing.core.PApplet;
 import DAN.DAN;
 
 
 @SuppressWarnings("serial")
-public class dandelion extends PApplet {
+public class Dandelion extends PApplet {
 	final int LINE_WEIGHT = 1500;
 	final int WIDTH = 1000;
 	final int HEIGHT = WIDTH * 2 / 3;
@@ -17,13 +19,8 @@ public class dandelion extends PApplet {
 	
 	final int BACKGROUND_GRAY_LEVEL = 255;
 	final int FOREGROUND_GRAY_LEVEL = 0;
-    
-    static float target_scale;
-    static float target_angle;
-    
 
-    float current_angle, current_scale;
-    float current_layer;
+    float current_angle, current_scale, current_layer;
 
     float b_x = B * cos(radians(60));
     float b_y = B * sin(radians(60));
@@ -32,21 +29,35 @@ public class dandelion extends PApplet {
     float r = 1;						// rotate parameter
     float count_r = 30f;				// rotate angle
     float rule;
-    float delta_scale;						// deltaY represents mouse speed on Y-axis
-
-    private void set_angle_scale (float new_angle, float new_scale) {
-        target_angle = new_angle;
-        target_scale = new_scale;
-        println("(angle, scale): (" + target_angle + "," + target_scale + ")");
+    
+    static final String dm_name = Dandelion.class.getSimpleName();
+    static final String[] df_list = new String[]{"Scale", "Angle"};
+    static final HashMap<String, Float> feature_map = new HashMap<String, Float>();
+    
+    static public void write (String feature, float para_data) {
+        if (!feature_map.containsKey(feature)) {
+            // error
+            return;
+        }
+        feature_map.put(feature, para_data);
     }
 
+    private void set_angle_scale (float new_angle, float new_scale) {
+        feature_map.put("Scale", new_scale);
+        feature_map.put("Angle", new_angle);
+        println("(angle, scale): (" + new_angle + "," + new_scale + ")");
+    }
 
     @Override
     public void setup() {
         smooth();
         size(WIDTH, HEIGHT);
         
-        DAI.init();
+        for (String df_name: df_list) {
+            feature_map.put(df_name, 0f);
+        }
+        
+        DAI.init(dm_name, df_list);
     }
 
     @Override
@@ -58,9 +69,8 @@ public class dandelion extends PApplet {
 
     @Override
     public void draw(){
-        current_angle += (target_angle - current_angle) / delay;
-		delta_scale = (target_scale - current_scale) / delay;
-        current_scale += delta_scale;
+        current_angle += (feature_map.get("Angle") - current_angle) / delay; // approximate to target_angle
+        current_scale += (feature_map.get("Scale") - current_scale) / delay; // approximate to target_scale
         current_layer = current_scale * MAX_LAYER;
 
         scale(2);
@@ -124,10 +134,7 @@ public class dandelion extends PApplet {
 
     @Override
     public void mouseMoved() {
-        //if(mouseFlag) {
         set_angle_scale((float)mouseX / (float)WIDTH, (float)mouseY / (float)HEIGHT);
-        println("mouse: " + target_angle + "," + target_scale);
-        //}
     }
 
     @Override
@@ -149,7 +156,7 @@ public class dandelion extends PApplet {
     }
 
     public static void main(String[] args) {
-        PApplet.main(new String[] { "dandelion" });
+        PApplet.main(new String[] {dm_name});
     }
 	
     static private void logging (String message) {

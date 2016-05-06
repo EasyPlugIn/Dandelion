@@ -15,9 +15,13 @@ import DAN.DAN.ODFObject;
 public class DAI {
 	static final IDAManager dandelion_ida_manager =  new DandelionIDAManager();
 	static final IDAManager.Subscriber ida_event_subscriber = new IDAEventSubscriber();
+	static String dm_name;
+	static String[] df_list;
 
-	public static void init() {
+	public static void init(String arg_dm_name, String[] arg_df_list) {
 	    logging(DAN.version);
+	    dm_name = arg_dm_name;
+	    df_list = arg_df_list;
 		dandelion_ida_manager.subscribe(ida_event_subscriber);
 		dandelion_ida_manager.search();
 	}
@@ -48,7 +52,7 @@ public class DAI {
 
 		@Override
 		public void search() {
-			subscriber.on_event(IDAManager.EventTag.FOUND_NEW_IDA, new DandelionIDA("Dandelion"));
+			subscriber.on_event(IDAManager.Event.FOUND_NEW_IDA, new DandelionIDA(dm_name));
 		}
 
 		@Override
@@ -56,7 +60,7 @@ public class DAI {
 
 		@Override
 		public void connect(IDA ida) {
-			subscriber.on_event(IDAManager.EventTag.CONNECTED, ida);
+			subscriber.on_event(IDAManager.Event.CONNECTED, ida);
 		}
 
 		@Override
@@ -65,16 +69,13 @@ public class DAI {
 			String feature = ida_command.feature;
 			double data = ida_command.data;
 			
-			if(feature.equals("Scale")) {
-				logging("Update feature "+ feature +": "+ data);
-				dandelion.target_scale = (float) data;
-			} else if(feature.equals("Angle")) {
-				logging("Update feature "+ feature +": "+ data);
-				dandelion.target_angle = (float) data;
-			} else {
-				handle_error("Feature '"+ feature +"' not found");
-				return;
+			for (String df_name: df_list) {
+			    if (feature.equals(df_name)) {
+			        Dandelion.write(feature, (float) data);
+			        return;
+			    }
 			}
+            handle_error("Feature '"+ feature +"' not found");
 		}
 
 		@Override
@@ -93,30 +94,29 @@ public class DAI {
 	
 	static class IDAEventSubscriber implements IDAManager.Subscriber {
 		@Override
-		public void on_event(IDAManager.EventTag event_tag, Object message) {
+		public void on_event(IDAManager.Event event_tag, Object message) {
 			switch (event_tag) {
 			case FOUND_NEW_IDA:
 				dandelion_ida_manager.connect((DandelionIDAManager.DandelionIDA)message);
 				break;
 			case CONNECTED:
 				DAN.Subscriber dan_event_subscriber = new DANEventSubscriber();
-				DAN.init("Dandelion", dan_event_subscriber);
+				DAN.init(dm_name, dan_event_subscriber);
 				JSONObject profile = new JSONObject();
 				try {
-					profile.put("d_name", "Dandelion001");
-					profile.put("dm_name", "Dandelion");
+					profile.put("d_name", dm_name +"001");
+					profile.put("dm_name", dm_name);
 					JSONArray feature_list = new JSONArray();
-					feature_list.put("Scale");
-					feature_list.put("Angle");
+					for (String df_name: df_list) {
+					    feature_list.put(df_name);
+					}
 					profile.put("df_list", feature_list);
 					profile.put("u_name", "yb");
 					profile.put("is_sim", false);
-					DAN.register("http://localhost:9999", "Dandelion001", profile);
+					DAN.register("http://localhost:9999", dm_name +"001", profile);
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
-
-				//logging("[Dandelion] EasyConnect Host: " + csmapi.ENDPOINT);
 
 				Runtime.getRuntime().addShutdownHook(new Thread () {
 					@Override
@@ -234,11 +234,10 @@ public class DAI {
 		return mac_addr_cache;
 	}
 
-	static String log_tag = "Dandelion";
 	static final String local_log_tag = "DAI";
 	static void logging (String message) {
 		String padding = message.startsWith(" ") || message.startsWith("[") ? "" : " ";
-		System.out.printf("[%s][%s]%s%s%n", log_tag, local_log_tag, padding, message);
+		System.out.printf("[%s][%s]%s%s%n", dm_name, local_log_tag, padding, message);
 	}
 	
 	static void handle_error (String message) {
