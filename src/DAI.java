@@ -164,6 +164,11 @@ public class DAI {
 	static class DANEventSubscriber extends DAN.Subscriber {
 		public void odf_handler (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
+			case FOUND_NEW_EC:
+			    if (!DAN.session_status()) {
+			        DAN.reregister(odf_object.message);
+			    }
+			    break;
 			case REGISTER_FAILED:
 				handle_error("Register failed: "+ odf_object.message);
 				break;
