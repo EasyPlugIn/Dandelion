@@ -2,171 +2,66 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import DAN.DAN;
-import DAN.DAN.ODFObject;
+import DANAPI.DAN;
+import DANAPI.DANAPI;
 
 public class DAI {
-	static final IDAManager dandelion_ida_manager =  new DandelionIDAManager();
-	static final IDAManager.Subscriber ida_event_subscriber = new IDAEventSubscriber();
-	static String dm_name;
-	static String[] df_list;
+    
+    static final DANAPI dan_api = new DAN();
+	static InternalIDAAPI internal_ida_api;
+	static final String d_name = "Dandelion001";
+	static final String dm_name = "Dandelion";
+	static final String[] df_list = new String[]{"Size", "Angle"};
 
-	public static void init(String arg_dm_name, String[] arg_df_list) {
-	    logging(DAN.version);
-	    dm_name = arg_dm_name;
-	    df_list = arg_df_list;
-		dandelion_ida_manager.subscribe(ida_event_subscriber);
-		dandelion_ida_manager.search();
+	public static void init(InternalIDAAPI internal_ida_api) {
+	    logging(dan_api.version());
+	    DAI.internal_ida_api = internal_ida_api;
+        DANAPI.AbstractODFReceiver dan_event_subscriber = new DANEventSubscriber();
+        dan_api.init(dan_event_subscriber);
+        JSONObject profile = new JSONObject();
+        try {
+            profile.put("d_name", d_name);
+            profile.put("dm_name", dm_name);
+            JSONArray feature_list = new JSONArray();
+            for (String df_name: df_list) {
+                feature_list.put(df_name);
+            }
+            profile.put("df_list", feature_list);
+            profile.put("u_name", "yb");
+            profile.put("is_sim", false);
+            dan_api.register("http://localhost:9999", dm_name +"001", profile);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread () {
+            @Override
+            public void run () {
+                DAI.deregister();
+            }
+        });
 	}
 	
-	static class DandelionIDAManager implements IDAManager {
-		IDAManager.Subscriber subscriber;
-		
-		class DandelionIDA extends IDAManager.IDA {
-			public String name;
-
-	        public DandelionIDA (String name) {
-	            this.name = name;
-	        }
-
-	        @Override
-	        public boolean equals (Object obj) {
-	            if (!(obj instanceof IDA)) {
-	                return false;
-	            }
-
-	            DandelionIDA another = (DandelionIDA) obj;
-	            if (this.name == null) {
-	                return false;
-	            }
-	            return this.name.equals(another.name);
-	        }
-		}
-
-		@Override
-		public void search() {
-			subscriber.on_event(IDAManager.Event.FOUND_NEW_IDA, new DandelionIDA(dm_name));
-		}
-
-		@Override
-		public void stop_searching() {}
-
-		@Override
-		public void connect(IDA ida) {
-			subscriber.on_event(IDAManager.Event.CONNECTED, ida);
-		}
-
-		@Override
-		public void write(byte[] command) {
-			IDACommand ida_command = IDACommand.fromBytes(command);
-			String feature = ida_command.feature;
-			double data = ida_command.data;
-			
-			for (String df_name: df_list) {
-			    if (feature.equals(df_name)) {
-			        Dandelion.write(feature, (float) data);
-			        return;
-			    }
-			}
-            handle_error("Feature '"+ feature +"' not found");
-		}
-
-		@Override
-		public void disconnect() {}
-
-		@Override
-		public void subscribe(Subscriber s) {
-			subscriber = s;
-		}
-
-		@Override
-		public void unsubscribe(Subscriber s) {
-			subscriber = null;
-		}
+	static public void deregister() {
+        dan_api.deregister();
 	}
 	
-	static class IDAEventSubscriber implements IDAManager.Subscriber {
-		@Override
-		public void on_event(IDAManager.Event event_tag, Object message) {
-			switch (event_tag) {
-			case FOUND_NEW_IDA:
-				dandelion_ida_manager.connect((DandelionIDAManager.DandelionIDA)message);
-				break;
-			case CONNECTED:
-				DAN.Subscriber dan_event_subscriber = new DANEventSubscriber();
-				DAN.init(dm_name, dan_event_subscriber);
-				JSONObject profile = new JSONObject();
-				try {
-					profile.put("d_name", dm_name +"001");
-					profile.put("dm_name", dm_name);
-					JSONArray feature_list = new JSONArray();
-					for (String df_name: df_list) {
-					    feature_list.put(df_name);
-					}
-					profile.put("df_list", feature_list);
-					profile.put("u_name", "yb");
-					profile.put("is_sim", false);
-					DAN.register("http://localhost:9999", dm_name +"001", profile);
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-
-				Runtime.getRuntime().addShutdownHook(new Thread () {
-					@Override
-					public void run () {
-						//logging("shutdown hook");
-						DAN.deregister();
-						dandelion_ida_manager.disconnect();
-					}
-				});
-				break;
-			default:
-				handle_error("Events other than FOUND_NEW_IDA and CONNECTED are invalid");
-				break;
-			}
-		}
+	static public void pull(String odf, JSONArray data) {
+	    internal_ida_api.write(odf, data);
 	}
 	
-	static class IDACommand {
-		public String feature;
-		public double data;
-		
-		public IDACommand (String feature, double data) {
-			this.feature = feature;
-			this.data = data;
-		}
-		
-		public byte[] toBytes () {
-			byte[] ret = new byte[8 + feature.length()];
-			ByteBuffer byte_buffer = ByteBuffer.wrap(ret);
-			byte_buffer.putDouble(data);
-			byte_buffer.put(feature.getBytes());
-		    return ret;
-		}
-		
-		static public IDACommand fromBytes (byte[] bytes) {
-			ByteBuffer byte_buffer = ByteBuffer.wrap(bytes);
-			byte[] feature_bytes = new byte[bytes.length - 8];
-			double data = byte_buffer.getDouble();
-			byte_buffer.get(feature_bytes);
-			String feature = new String(feature_bytes);
-			return new IDACommand(feature, data);
-		}
-	}
-	
-	static class DANEventSubscriber extends DAN.Subscriber {
-		public void odf_handler (String feature, DAN.ODFObject odf_object) {
+	static class DANEventSubscriber extends DANAPI.AbstractODFReceiver {
+		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
 			case FOUND_NEW_EC:
-			    if (!DAN.session_status()) {
-			        DAN.reregister(odf_object.message);
+			    if (!dan_api.session_status()) {
+			        dan_api.reregister(odf_object.message);
 			    }
 			    break;
 			case REGISTER_FAILED:
@@ -174,9 +69,8 @@ public class DAI {
 				break;
 			case REGISTER_SUCCEED:
 				//logging("Register successed: "+ odf_object.message);
-				final DAN.Subscriber odf_subscriber = new ODFSubscriber();
-				DAN.subscribe("Scale", odf_subscriber);
-				DAN.subscribe("Angle", odf_subscriber);
+				final DANAPI.AbstractODFReceiver odf_subscriber = new ODFReceiver();
+				dan_api.subscribe(df_list, odf_subscriber);
 				break;
 			default:
 				break;
@@ -184,18 +78,16 @@ public class DAI {
 		}
 	}
 	
-	static class ODFSubscriber extends DAN.Subscriber {
+	static class ODFReceiver extends DANAPI.AbstractODFReceiver {
 		@Override
-		public void odf_handler (String feature, DAN.ODFObject odf_object) {
-			logging("New data: "+ feature +", "+ odf_object.data.toString());
-			if(feature.equals("Scale")) {
-				IDACommand ida_command = new IDACommand("Scale", odf_object.data.getDouble(0));
-				dandelion_ida_manager.write(ida_command.toBytes());
-			} else if(feature.equals("Angle")) {
-				IDACommand ida_command = new IDACommand("Angle", odf_object.data.getDouble(0));
-				dandelion_ida_manager.write(ida_command.toBytes());
+		public void receive (String odf, DAN.ODFObject odf_object) {
+			logging("New data: "+ odf +", "+ odf_object.data.toString());
+			if(odf.equals("Size")) {
+			    internal_ida_api.write(odf, odf_object.data);
+			} else if(odf.equals("Angle")) {
+                internal_ida_api.write(odf, odf_object.data);
 			} else {
-				handle_error("Feature '"+ feature +"' not found");
+				handle_error("Feature '"+ odf +"' not found");
 			}
 		}
 	}
@@ -243,5 +135,4 @@ public class DAI {
 	static void handle_error (String message) {
 		logging(message);
 	}
-
 }

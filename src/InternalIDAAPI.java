@@ -1,5 +1,7 @@
-public interface IDAManager {
-    public enum Event {
+import org.json.JSONArray;
+
+public interface InternalIDAAPI {
+    enum Event {
         INITIALIZATION_FAILED,
         INITIALIZED,
         SEARCHING_STARTED,
@@ -13,19 +15,19 @@ public interface IDAManager {
         DISCONNECTED,
     }
 
-    public interface Subscriber {
+    interface Subscriber {
         abstract public void on_event(final Event event, final Object message);
     }
 
-    public abstract class IDA {
+    abstract class IDA {
         String id;
     }
 
-    public void subscribe(Subscriber s);
-    public void unsubscribe(Subscriber s);
-    public void search();
-    public void stop_searching();
-    public void connect(IDA ida);
-    public void write(byte[] command);
-    public void disconnect();
+    void subscribe(Subscriber s);
+    void unsubscribe(Subscriber s);
+    void search();
+    void stop_searching();
+    void connect(IDA ida);
+    void write(String odf, JSONArray data);
+    void disconnect();
 }
