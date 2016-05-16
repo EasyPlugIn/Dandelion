@@ -38,7 +38,7 @@ public interface IDAAPI {
     }
 
     interface IDFHandler {
-        abstract public void receive(final String idf, final IDFObject idf_object);
+        void receive(final String idf, final IDFObject idf_object);
     }
 
     abstract class IDA {

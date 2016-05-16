@@ -22,7 +22,7 @@ public class DAI {
 	public static void init(IDAAPI internal_ida_api) {
 	    logging(dan_api.version());
 	    DAI.internal_ida_api = internal_ida_api;
-        DANAPI.AbstractODFReceiver dan_event_subscriber = new DANEventSubscriber();
+        DANAPI.ODFHandler dan_event_subscriber = new DANEventHandler();
         dan_api.init(dan_event_subscriber);
         JSONObject profile = new JSONObject();
         try {
@@ -56,7 +56,7 @@ public class DAI {
 	    internal_ida_api.write(odf, data);
 	}
 	
-	static class DANEventSubscriber extends DANAPI.AbstractODFReceiver {
+	static class DANEventHandler implements DANAPI.ODFHandler {
 		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
 			case FOUND_NEW_EC:
@@ -69,7 +69,7 @@ public class DAI {
 				break;
 			case REGISTER_SUCCEED:
 				//logging("Register successed: "+ odf_object.message);
-				final DANAPI.AbstractODFReceiver odf_subscriber = new ODFReceiver();
+				final DANAPI.ODFHandler odf_subscriber = new DandelionODFHandler();
 				dan_api.subscribe(df_list, odf_subscriber);
 				break;
 			default:
@@ -78,7 +78,7 @@ public class DAI {
 		}
 	}
 	
-	static class ODFReceiver extends DANAPI.AbstractODFReceiver {
+	static class DandelionODFHandler implements DANAPI.ODFHandler {
 		@Override
 		public void receive (String odf, DAN.ODFObject odf_object) {
 			logging("New data: "+ odf +", "+ odf_object.data.toString());
