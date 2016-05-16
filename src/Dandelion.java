@@ -4,7 +4,44 @@ import processing.core.PApplet;
 
 
 @SuppressWarnings("serial")
-public class Dandelion extends PApplet implements InternalIDAAPI {
+public class Dandelion extends PApplet implements IDAAPI {
+    /* ********************* */
+    /* IDAAPI implementation */
+    /* ********************* */
+    @Override
+    public void search() {}
+
+    @Override
+    public void connect(IDA ida) {}
+
+    @Override
+    public void write(String odf, JSONArray data) {
+        logging("write: "+ odf +", "+ data.toString());
+        if(odf.equals("Angle")) {
+            target_angle = (float) data.getDouble(0);
+        } else if(odf.equals("Size")) {
+            target_size = (float) data.getDouble(0);
+        } else {
+            handle_error("Feature '"+ odf +"' not found");
+        }
+    }
+
+    @Override
+    public void disconnect() {}
+
+    @Override
+    public void subscribe(String[] idf, IDFHandler idf_handler) {}
+
+    @Override
+    public void subscribe(String idf, IDFHandler idf_handler) {}
+
+    @Override
+    public void unsubscribe(IDFHandler idf_handler) {}
+    
+    
+    /* ****************** */
+    /* IDA implementation */
+    /* ****************** */
 	final int LINE_WEIGHT = 1500;
 	final int WIDTH = 1000;
 	final int HEIGHT = WIDTH * 2 / 3;
@@ -30,12 +67,6 @@ public class Dandelion extends PApplet implements InternalIDAAPI {
     float count_r = 30f;				// rotate angle
     float rule;
 
-//    private void set_angle_scale (float new_angle, float new_scale) {
-//        feature_map.put("Scale", new_scale);
-//        feature_map.put("Angle", new_angle);
-//        println("(angle, scale): (" + new_angle + "," + new_scale + ")");
-//    }
-
     @Override
     public void setup() {
         smooth();
@@ -48,12 +79,6 @@ public class Dandelion extends PApplet implements InternalIDAAPI {
         current_size = 0f;
         
         DAI.init(this);
-    }
-
-    @Override
-    public void stop() {
-        logging("stop");
-        DAI.deregister();
     }
 
     @Override
@@ -121,29 +146,6 @@ public class Dandelion extends PApplet implements InternalIDAAPI {
         popMatrix();
     }
 
-//    @Override
-//    public void mouseMoved() {
-//        set_angle_scale((float)mouseX / (float)WIDTH, (float)mouseY / (float)HEIGHT);
-//    }
-
-    @Override
-    public void keyPressed() {
-        // Finish the movie if space bar is pressed!
-        if (key == ' ' ) {
-            println( "finishing movie" );
-            // Do not forget to finish the movie! Otherwise, it will not play properly.
-        }
-    }
-    
-    boolean overRect(float x, float y, float width, float height) {
-        if (mouseX >= x && mouseX <= x+width &&
-                mouseY >= y && mouseY <= y+height) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public static void main(String[] args) {
         PApplet.main(new String[] {"Dandelion"});
     }
@@ -155,34 +157,4 @@ public class Dandelion extends PApplet implements InternalIDAAPI {
     static private void handle_error(String message) {
         logging(message);
     }
-    
-    @Override
-    public void search() {}
-
-    @Override
-    public void stop_searching() {}
-
-    @Override
-    public void connect(IDA ida) {}
-
-    @Override
-    public void write(String odf, JSONArray data) {
-        logging("write: "+ odf +", "+ data.toString());
-        if(odf.equals("Angle")) {
-            target_angle = (float) data.getDouble(0);
-        } else if(odf.equals("Size")) {
-            target_size = (float) data.getDouble(0);
-        } else {
-            handle_error("Feature '"+ odf +"' not found");
-        }
-    }
-
-    @Override
-    public void disconnect() {}
-
-    @Override
-    public void subscribe(Subscriber s) {}
-
-    @Override
-    public void unsubscribe(Subscriber s) {}
 }

@@ -14,12 +14,12 @@ import DANAPI.DANAPI;
 public class DAI {
     
     static final DANAPI dan_api = new DAN();
-	static InternalIDAAPI internal_ida_api;
+	static IDAAPI internal_ida_api;
 	static final String d_name = "Dandelion001";
 	static final String dm_name = "Dandelion";
 	static final String[] df_list = new String[]{"Size", "Angle"};
 
-	public static void init(InternalIDAAPI internal_ida_api) {
+	public static void init(IDAAPI internal_ida_api) {
 	    logging(dan_api.version());
 	    DAI.internal_ida_api = internal_ida_api;
         DANAPI.AbstractODFReceiver dan_event_subscriber = new DANEventSubscriber();
