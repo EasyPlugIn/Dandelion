@@ -5,7 +5,7 @@ public interface IDAAPI {
         INITIALIZATION_FAILED,
         INITIALIZED,
         SEARCHING_STARTED,
-        FOUND_NEW_IDA,
+        NEW_IDA_DISCOVERED,
         SEARCHING_STOPPED,
         CONNECTION_FAILED,
         CONNECTED,

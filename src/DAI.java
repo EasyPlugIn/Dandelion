@@ -59,7 +59,7 @@ public class DAI {
 	static class DANEventHandler implements DANAPI.ODFHandler {
 		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
-			case FOUND_NEW_EC:
+			case NEW_EC_DISCOVERED:
 			    if (!dan_api.session_status()) {
 			        dan_api.reregister(odf_object.message);
 			    }
