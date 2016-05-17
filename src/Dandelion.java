@@ -12,7 +12,7 @@ public class Dandelion extends PApplet implements IDAAPI {
     public void search() {}
 
     @Override
-    public void connect(IDA ida) {}
+    public void connect(String id) {}
 
     @Override
     public void write(String odf, JSONArray data) {
@@ -30,10 +30,7 @@ public class Dandelion extends PApplet implements IDAAPI {
     public void disconnect() {}
 
     @Override
-    public void subscribe(String[] idf, IDFHandler idf_handler) {}
-
-    @Override
-    public void subscribe(String idf, IDFHandler idf_handler) {}
+    public void subscribe(String[] idf_list, IDFHandler idf_handler) {}
 
     @Override
     public void unsubscribe(IDFHandler idf_handler) {}

@@ -38,18 +38,13 @@ public interface IDAAPI {
     }
 
     interface IDFHandler {
-        void receive(final String idf, final IDFObject idf_object);
+        void receive(String idf, IDFObject idf_object);
     }
 
-    abstract class IDA {
-        String id;
-    }
-
-    void subscribe(String[] idf, IDFHandler idf_handler);
-    void subscribe(String idf, IDFHandler idf_handler);
+    void subscribe(String[] idf_list, IDFHandler idf_handler);
     void unsubscribe(IDFHandler idf_handler);
     void search();
-    void connect(IDA ida);
+    void connect(String id);
     void write(String odf, JSONArray data);
     void disconnect();
 }
