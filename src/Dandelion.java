@@ -4,7 +4,7 @@ import processing.core.PApplet;
 
 
 @SuppressWarnings("serial")
-public class Dandelion extends PApplet implements IDAAPI {
+public class Dandelion extends PApplet implements IDAapi {
     /* ********************* */
     /* IDAAPI implementation */
     /* ********************* */

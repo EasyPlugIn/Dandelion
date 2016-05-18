@@ -1,19 +1,19 @@
 import org.json.JSONArray;
 
-public interface IDAAPI {
+public interface IDAapi {
     enum Event {
         INITIALIZATION_FAILED,
-        INITIALIZED,
-        SEARCHING_STARTED,
-        NEW_IDA_DISCOVERED,
-        SEARCHING_STOPPED,
+        INITIALIZATION_SUCCEEDED,
+        SEARCH_STARTED,
+        IDA_DISCOVERED,
+        SEARCH_STOPPED,
         CONNECTION_FAILED,
-        CONNECTED,
+        CONNECTION_SUCCEEDED,
         WRITE_FAILED,
-        WRITE_SUCCEED,
+        WRITE_SUCCEEDED,
         READ_FAILED,
         DISCONNECTION_FAILED,
-        DISCONNECTED,
+        DISCONNECTION_SUCCEEDED,
     }
     
     static public class IDFObject {

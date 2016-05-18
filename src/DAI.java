@@ -8,21 +8,21 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import DANAPI.DAN;
-import DANAPI.DANAPI;
+import DANapi.DAN;
+import DANapi.DANapi;
 
 public class DAI {
     
-    static final DANAPI dan_api = new DAN();
-	static IDAAPI internal_ida_api;
+    static final DANapi dan_api = new DAN();
+	static IDAapi internal_ida_api;
 	static final String d_name = "Dandelion001";
 	static final String dm_name = "Dandelion";
 	static final String[] df_list = new String[]{"Size", "Angle"};
 
-	public static void init(IDAAPI internal_ida_api) {
+	public static void init(IDAapi internal_ida_api) {
 	    logging(dan_api.version());
 	    DAI.internal_ida_api = internal_ida_api;
-        DANAPI.ODFHandler dan_event_subscriber = new DANEventHandler();
+        DANapi.ODFHandler dan_event_subscriber = new DANEventHandler();
         dan_api.init(dan_event_subscriber);
         JSONObject profile = new JSONObject();
         try {
@@ -56,7 +56,7 @@ public class DAI {
 	    internal_ida_api.write(odf, data);
 	}
 	
-	static class DANEventHandler implements DANAPI.ODFHandler {
+	static class DANEventHandler implements DANapi.ODFHandler {
 		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
 			case NEW_EC_DISCOVERED:
@@ -69,7 +69,7 @@ public class DAI {
 				break;
 			case REGISTER_SUCCEED:
 				//logging("Register successed: "+ odf_object.message);
-				final DANAPI.ODFHandler odf_subscriber = new DandelionODFHandler();
+				final DANapi.ODFHandler odf_subscriber = new DandelionODFHandler();
 				dan_api.subscribe(df_list, odf_subscriber);
 				break;
 			default:
@@ -78,7 +78,7 @@ public class DAI {
 		}
 	}
 	
-	static class DandelionODFHandler implements DANAPI.ODFHandler {
+	static class DandelionODFHandler implements DANapi.ODFHandler {
 		@Override
 		public void receive (String odf, DAN.ODFObject odf_object) {
 			logging("New data: "+ odf +", "+ odf_object.data.toString());
