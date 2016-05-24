@@ -1,3 +1,7 @@
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -14,6 +18,7 @@ import DANapi.DANapi;
 public class DAI {
     static final DANapi dan_api = new DAN();
 	static IDAapi internal_ida_api;
+	static final String config_filename = "config.txt";
 	static final String d_name = "Dandelion001";
 	static final String dm_name = "Dandelion";
 	static final String[] df_list = new String[]{"Size", "Angle"};
@@ -23,6 +28,9 @@ public class DAI {
 	    DAI.internal_ida_api = internal_ida_api;
         DANapi.ODFHandler dan_event_subscriber = new DANEventHandler();
         dan_api.init(dan_event_subscriber);
+        
+        String endpoint = "http://"+ get_config_ec() +":9999";
+        
         JSONObject profile = new JSONObject();
         try {
             profile.put("d_name", d_name);
@@ -34,7 +42,7 @@ public class DAI {
             profile.put("df_list", feature_list);
             profile.put("u_name", "yb");
             profile.put("is_sim", false);
-            dan_api.register("http://localhost:9999", dm_name +"001", profile);
+            dan_api.register(endpoint, dm_name +"001", profile);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -45,6 +53,25 @@ public class DAI {
                 DAI.deregister();
             }
         });
+	}
+	
+	static private String get_config_ec () {
+	    try {
+	        /* assume that the config file has only one line,
+	         *  which is the IP address of the EC (without port number)*/
+	        BufferedReader br = new BufferedReader(new FileReader(config_filename));
+    	    try {
+    	        String line = br.readLine();
+    	        if (line != null) {
+    	            return line;
+    	        }
+                return "localhost";
+    	    } finally {
+    	        br.close();
+    	    }
+	    } catch (IOException e) {
+	        return "localhost";
+	    }
 	}
 	
 	static public void deregister() {
