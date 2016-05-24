@@ -86,9 +86,7 @@ public class DAI {
 		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
 			case NEW_EC_DISCOVERED:
-			    if (!dan_api.session_status()) {
-			        dan_api.reregister(odf_object.message);
-			    }
+		        dan_api.reregister(odf_object.message);
 			    break;
 			case REGISTER_FAILED:
 				handle_error("Register failed: "+ odf_object.message);
