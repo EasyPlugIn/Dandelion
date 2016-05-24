@@ -12,7 +12,6 @@ import DANapi.DAN;
 import DANapi.DANapi;
 
 public class DAI {
-    
     static final DANapi dan_api = new DAN();
 	static IDAapi internal_ida_api;
 	static final String d_name = "Dandelion001";

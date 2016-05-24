@@ -28,12 +28,6 @@ public class Dandelion extends PApplet implements IDAapi {
 
     @Override
     public void disconnect() {}
-
-    @Override
-    public void subscribe(String[] idf_list, IDFHandler idf_handler) {}
-
-    @Override
-    public void unsubscribe(IDFHandler idf_handler) {}
     
     
     /* ****************** */
