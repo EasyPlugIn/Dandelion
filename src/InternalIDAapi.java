@@ -12,7 +12,7 @@ class InternalIDAapi implements IDAapi {
     }
     public void search() {}
     public void connect(String id) {}
-    public void send(String odf, JSONArray data) {
+    public void write(String odf, JSONArray data) {
         IDA.send(odf, data);
     }
     public void disconnect() {}
