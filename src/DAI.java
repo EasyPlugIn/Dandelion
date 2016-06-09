@@ -72,7 +72,7 @@ public class DAI {
 	}
 	
 	static public void pull(String odf, JSONArray data) {
-	    internal_ida_api.write(odf, data);
+	    internal_ida_api.send(odf, data);
 	}
 	
 	static class DANEventHandler implements DANapi.ODFHandler {
@@ -104,11 +104,11 @@ public class DAI {
 		public void receive (String odf, DAN.ODFObject odf_object) {
 			logging("New data: "+ odf +", "+ odf_object.data.toString());
             if(odf.equals("Size")) {
-                internal_ida_api.write(odf, odf_object.data);
+                internal_ida_api.send(odf, odf_object.data);
             } else if(odf.equals("Angle")) {
-                internal_ida_api.write(odf, odf_object.data);
+                internal_ida_api.send(odf, odf_object.data);
             } else if(odf.equals("Control")) {
-                internal_ida_api.write(odf, odf_object.data);
+                internal_ida_api.send(odf, odf_object.data);
 			} else {
 				handle_error("Feature '"+ odf +"' not found");
 			}

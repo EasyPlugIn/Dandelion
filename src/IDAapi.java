@@ -20,6 +20,6 @@ public interface IDAapi {
     void init(IDFhandler idf_handler_obj, Object... args);
     void search();
     void connect(String id);
-    void write(String odf, JSONArray data);
+    void send(String odf, JSONArray data);
     void disconnect();
 }
