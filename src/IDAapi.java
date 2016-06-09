@@ -1,5 +1,4 @@
 import org.json.JSONArray;
-
 public interface IDAapi {
     enum Event {
         INITIALIZATION_FAILED,
@@ -15,11 +14,10 @@ public interface IDAapi {
         DISCONNECTION_FAILED,
         DISCONNECTION_SUCCEEDED,
     }
-
-    interface IDFHandler {
+    interface IDFhandler {
         void receive(String idf, JSONArray data);
     }
-
+    void init(IDFhandler idf_handler_obj, Object... args);
     void search();
     void connect(String id);
     void write(String odf, JSONArray data);

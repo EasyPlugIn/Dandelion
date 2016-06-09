@@ -2,6 +2,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.json.JSONArray;
@@ -16,22 +17,41 @@ public class DAI {
 	static IDAapi internal_ida_api;
 	static final String d_name = "Dandelion001";
 	static final String dm_name = "Dandelion";
-	static final String[] df_list = new String[]{"Size", "Angle"};
+	static JSONArray df_list;
+	static final IDF_handler idf_handler_obj = new IDF_handler();
+	
+	static class IDF_handler implements IDAapi.IDFhandler {
+        @Override
+        public void receive(String idf, JSONArray data) {
+            logging("receive(%s, %s)", idf, data);
+            if (idf.equals("Control")) {
+                String command = data.getString(0);
+                JSONArray args = data.getJSONObject(1).getJSONArray("args");
+                logging("Control: (%s, %s)", command, args);
+            } else {
+                dan_api.push(idf, data);
+            }
+        }
+	}
 
-	public static void init(IDAapi internal_ida_api) {
-	    logging(dan_api.version());
-	    DAI.internal_ida_api = internal_ida_api;
+	public static void init(InternalIDAapi internal_ida_api) {
+        logging("DAI.init(%s)", internal_ida_api);
+        DAI.internal_ida_api = internal_ida_api;
+        DAI.internal_ida_api.init(idf_handler_obj);
+        
+        logging(dan_api.version());
         DANapi.ODFHandler dan_event_subscriber = new DANEventHandler();
         dan_api.init(dan_event_subscriber);
         JSONObject profile = new JSONObject();
         try {
+            df_list = new JSONArray();
+            df_list.put("Size");
+            df_list.put("Angle");
+            df_list.put("Mouse");
+            df_list.put("Control");
             profile.put("d_name", d_name);
             profile.put("dm_name", dm_name);
-            JSONArray feature_list = new JSONArray();
-            for (String df_name: df_list) {
-                feature_list.put(df_name);
-            }
-            profile.put("df_list", feature_list);
+            profile.put("df_list", df_list);
             profile.put("u_name", "yb");
             profile.put("is_sim", false);
             dan_api.register("http://localhost:9999", dm_name +"001", profile);
@@ -69,7 +89,9 @@ public class DAI {
 			case REGISTER_SUCCEED:
 				//logging("Register successed: "+ odf_object.message);
 				final DANapi.ODFHandler odf_subscriber = new DandelionODFHandler();
-				dan_api.subscribe(df_list, odf_subscriber);
+				for (int i = 0; i < df_list.length(); i++) {
+				    dan_api.subscribe(df_list.getString(i), odf_subscriber);
+				}
 				break;
 			default:
 				break;
@@ -81,9 +103,11 @@ public class DAI {
 		@Override
 		public void receive (String odf, DAN.ODFObject odf_object) {
 			logging("New data: "+ odf +", "+ odf_object.data.toString());
-			if(odf.equals("Size")) {
-			    internal_ida_api.write(odf, odf_object.data);
-			} else if(odf.equals("Angle")) {
+            if(odf.equals("Size")) {
+                internal_ida_api.write(odf, odf_object.data);
+            } else if(odf.equals("Angle")) {
+                internal_ida_api.write(odf, odf_object.data);
+            } else if(odf.equals("Control")) {
                 internal_ida_api.write(odf, odf_object.data);
 			} else {
 				handle_error("Feature '"+ odf +"' not found");
@@ -126,10 +150,14 @@ public class DAI {
 	}
 
 	static final String local_log_tag = "DAI";
-	static void logging (String message) {
-		String padding = message.startsWith(" ") || message.startsWith("[") ? "" : " ";
-		System.out.printf("[%s][%s]%s%s%n", dm_name, local_log_tag, padding, message);
-	}
+	
+    static private void logging (String format, Object... args) {
+        logging(String.format(format, args));
+    }
+
+    static void logging(String message) {
+        System.out.println("["+ local_log_tag +"] " + message);
+    }
 	
 	static void handle_error (String message) {
 		logging(message);
