@@ -1,165 +1,497 @@
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Random;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import DANapi.DAN;
-import DANapi.DANapi;
-
-public class DAI {
-    static final DANapi dan_api = new DAN();
-	static IDAapi internal_ida_api;
-	static final String d_name = "Dandelion001";
-	static final String dm_name = "Dandelion";
-	static JSONArray df_list;
-	static final IDF_handler idf_handler_obj = new IDF_handler();
+import org.json.*;
+import DANapi.*;
+import DANapi.DANapi.*;
+import processing.core.PApplet;
+@SuppressWarnings("serial")
+public class DAI implements DANapi.ODFHandler {
+	static DAI dai = new DAI();
+	static IDA ida = new IDA();
 	
-	static class IDF_handler implements IDAapi.IDFhandler {
-        @Override
-        public void receive(String idf, JSONArray data) {
-            logging("receive(%s, %s)", idf, data);
-            if (idf.equals("Control")) {
-                String command = data.getString(0);
-                JSONArray args = data.getJSONObject(1).getJSONArray("args");
-                logging("Control: (%s, %s)", command, args);
-            } else {
-                dan_api.push(idf, data);
+	static abstract class DF {
+        public DF (String name) {
+            this.name = name;
+        }
+        public String name;
+        public boolean selected;
+    }
+	
+	static abstract class IDF extends DF {
+        public IDF (String name) {
+            super(name);
+        }
+        abstract public void push(Object... raw_data);
+    }
+	
+    static abstract class ODF extends DF {
+        public ODF (String name) {
+            super(name);
+        }
+        abstract public void pull(JSONArray data);
+    }
+    
+    static abstract class Command {
+        public Command(String name) {
+            this.name = name;
+        }
+        public String name;
+        abstract public void run(JSONArray dl_cmd_params, JSONArray ul_cmd_params);
+    }
+    
+    static ArrayList<DF> df_list = new ArrayList<DF>();
+    static ArrayList<Command> cmd_list = new ArrayList<Command>();
+    static boolean suspended = true;
+
+    
+    static void add_df (DF... dfs) {
+        for (DF df: dfs) {
+            df_list.add(df);
+        }
+    }
+    
+    static void add_command (Command... cmds) {
+        for (Command cmd: cmds) {
+            cmd_list.add(cmd);
+        }
+    }
+    
+    private static boolean is_selected(String df_name) {
+        for (DF df: df_list) {
+            if (df_name.equals(df.name)) {
+                return df.selected;
             }
         }
-	}
+        System.out.println("Device feature" + df_name + "is not found");
+        return false;
+    }
+ 
+    private static Command get_cmd(String cmd_name) {
+        for(Command cmd: cmd_list) {
+            if(cmd_name.equals(cmd.name) || cmd_name.equals(cmd.name + "_RSP")) {
+                return cmd;
+            }
+        }
+        System.out.println("Command" + cmd_name + "is not found");
+        return null;
+    }
+    
+    private static DF get_df(String df_name) {
+        for(DF df: df_list) {
+            if(df_name.equals(df.name)) {
+                return df;
+            }
+        }
+        System.out.println("Device feature" + df_name + "is not found");
+        return null;
+    }
+    
+    
+    /* Default command-1: SET_DF_STATUS */
+    static class SET_DF_STATUS extends Command {
+        public SET_DF_STATUS() {
+            super("SET_DF_STATUS");
+        }
+        public void run(JSONArray df_status_list,
+                         JSONArray ul_cmd_params) {
+            if(df_status_list == null) {}
+            else if(ul_cmd_params == null) {
+                String flags = df_status_list.getString(0);
+                for(int i = 0; i < flags.length(); i++) {
+                    if(flags.charAt(i) == '0') {
+                        df_list.get(i).selected = false;
+                    } else {
+                        df_list.get(i).selected = true;
+                    }
+                }
+                dai.push("__Ctl_I__", new JSONArray(){{
+	            	put("SET_DF_STATUS_RSP");
+	            	put(new JSONObject(){{
+	            		put("cmd_params", new JSONArray(){{
+	            			put(flags);
+	            		}});
+	            	}});
+	            }});
+            } else {
+                System.out.println("Both the df_status_list and the ul_cmd_params are null");
+            }
+        }
+    }
+    /* Default command-2: RESUME */
+    static class RESUME extends Command {
+        public RESUME() {
+            super("RESUME");
+        }
+        public void run(JSONArray dl_cmd_params,
+                         JSONArray ul_cmd_params) {
+            if(dl_cmd_params == null) {}
+            else if(ul_cmd_params == null) {
+                suspended = false;
+                dai.push("__Ctl_I__", new JSONArray(){{
+	            	put("RESUME_RSP");
+	            	put(new JSONObject(){{
+	            		put("cmd_params", new JSONArray(){{
+	            			put("OK");
+	            		}});
+	            	}});
+	            }});
+            } else {
+            	System.out.println("Both the dl_cmd_params and the ul_cmd_params are null!");
+            }
+        }
+    }
+    /* Default command-3: SUSPEND */
+    static class SUSPEND extends Command {
+        public SUSPEND() {
+            super("SUSPEND");
+        }
+        public void run(JSONArray dl_cmd_params,
+                         JSONArray ul_cmd_params) {
+            if(dl_cmd_params == null) {}
+            else if(ul_cmd_params == null) {
+                suspended = true;
+                dai.push("__Ctl_I__", new JSONArray(){{
+	            	put("SUSPEND_RSP");
+	            	put(new JSONObject(){{
+	            		put("cmd_params", new JSONArray(){{
+	            			put("OK");
+	            		}});
+	            	}});
+	            }});
+            } else {
+            	System.out.println("Both the dl_cmd_params and the ul_cmd_params are null!");
+            }
+        }
+    }
+    
 
-	public static void init(InternalIDAapi internal_ida_api) {
-        logging("DAI.init(%s)", internal_ida_api);
-        DAI.internal_ida_api = internal_ida_api;
-        DAI.internal_ida_api.init(idf_handler_obj);
-        
-        logging(dan_api.version());
-        DANapi.ODFHandler dan_event_subscriber = new DANEventHandler();
-        dan_api.init(dan_event_subscriber);
-        JSONObject profile = new JSONObject();
+	static DANapi dan_api = new DAN();
+	static String d_name = "Dandelion001";
+	static String d_id = "get_mac_addr";
+	static String u_name = "yb";
+	static Boolean is_sim = false;
+		
+	
+	
+	/* register() */
+	public void register() {
+		
+		dan_api.init(this);
+        //JSONObject profile = new JSONObject();
+        JSONArray df_name_list = new JSONArray();
+        for(int i = 0; i < df_list.size(); i++) {
+			df_name_list.put(df_list.get(i).name);
+        }
+        JSONObject profile = new JSONObject() {{
+        	put("d_name", d_name);
+        	put("dm_name", "Dandelion"); //deleted
+        	put("u_name", u_name);
+        	put("df_list", df_name_list);
+        	put("is_sim", is_sim);
+        	
+        }};
         try {
-            df_list = new JSONArray();
-            df_list.put("Size");
-            df_list.put("Angle");
-            df_list.put("Mouse");
-            df_list.put("Control");
-            profile.put("d_name", d_name);
-            profile.put("dm_name", dm_name);
-            profile.put("df_list", df_list);
-            profile.put("u_name", "yb");
-            profile.put("is_sim", false);
-            dan_api.register("http://localhost:9999", dm_name +"001", profile);
+        	
+            df_name_list.put("__Ctl_O__");  /* this line will be deleted in the new version of DA */
+            df_name_list.put("__Ctl_I__");  /* this line will be deleted in the new version of DA */
+            
+            dan_api.register("http://localhost:9999", d_id , profile); /* Subject to change */
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread () {
+	}
+	
+	public void add_shutdownhook() {
+		Runtime.getRuntime().addShutdownHook(new Thread () {
             @Override
             public void run () {
-                DAI.deregister();
+            	deregister();
             }
         });
 	}
 	
-	static public void deregister() {
-        dan_api.deregister();
+	/* deregister() */
+	public void deregister() {
+		dan_api.deregister();
+		// for(int i = 0; i < 3; i++) {
+		//     if(dan_api.deregister())
+		//         return;
+		// }
 	}
-	
-	static public void pull(String odf, JSONArray data) {
-	    internal_ida_api.write(odf, data);
+	/* push() */
+	public void push(String idf, JSONArray data) {
+	    dan_api.push(idf, data);
 	}
-	
-	static class DANEventHandler implements DANapi.ODFHandler {
-		public void receive (String feature, DAN.ODFObject odf_object) {
-			switch (odf_object.event) {
-			case NEW_EC_DISCOVERED:
-			    if (!dan_api.session_status()) {
-			        dan_api.reregister(odf_object.message);
-			    }
-			    break;
-			case REGISTER_FAILED:
-				handle_error("Register failed: "+ odf_object.message);
-				break;
-			case REGISTER_SUCCEED:
-				//logging("Register successed: "+ odf_object.message);
-				final DANapi.ODFHandler odf_subscriber = new DandelionODFHandler();
-				for (int i = 0; i < df_list.length(); i++) {
-				    dan_api.subscribe(df_list.getString(i), odf_subscriber);
-				}
-				break;
-			default:
-				break;
+	/* pull() */
+	@Override
+	/* receive() will be renamed to pull() in the new version of DA*/
+	public void receive(String odf_name, ODFObject odf_obj) {
+	    if (odf_obj.event != null) {
+	        switch (odf_obj.event) {
+			    case NEW_EC_DISCOVERED:
+			        if (!dan_api.session_status()) {
+			            dan_api.reregister(odf_obj.message);
+				    }
+				    break;
+				case REGISTER_FAILED:
+					//handle_error("Register failed: "+ odf_obj.message);
+					break;
+				case REGISTER_SUCCEED:
+					//logging("Register successed: "+ odf_object.message); 
+                    dan_api.subscribe("__Ctl_O__", this); 
+                    dan_api.subscribe("Size", this); 
+                    dan_api.subscribe("Angle", this);
+					break;
+				default:
+					break;
 			}
-		}
+	        return;
+	    }
+		if (odf_name.equals("__Ctl_O__")) {
+            String cmd_name = odf_obj.data.getString(0);
+            JSONArray dl_cmd_params = odf_obj.data.getJSONObject(1).getJSONArray("cmd_params");
+            Command cmd = get_cmd(cmd_name);
+            if (cmd != null) {
+                cmd.run(dl_cmd_params, null);
+                return;
+            }
+            
+            /* Reports the exception to IoTtalk*/
+            dan_api.push("__Ctl_I__", new JSONArray(){{
+            	put("UNKNOWN_COMMAND");
+            	put(new JSONObject(){{
+            		put("cmd_params", new JSONArray(){{
+            			put(cmd_name);
+            		}});
+            	}});
+            }});
+        } else {
+        	ODF odf = ((ODF)get_df(odf_name));
+        	if (odf != null) {
+        		odf.pull(odf_obj.data);
+                return;
+            }
+            
+            /* Reports the exception to IoTtalk*/
+            dan_api.push("__Ctl_I__", new JSONArray(){{
+            	put("UNKNOWN_ODF");
+            	put(new JSONObject(){{
+            		put("cmd_params", new JSONArray(){{
+            			put(odf_name);
+            		}});
+            	}});
+            }});
+        }
 	}
 	
-	static class DandelionODFHandler implements DANapi.ODFHandler {
+
+    /* The main() function */
+    public static void main(String[] args) {
+        add_command(
+            new SET_DF_STATUS(),
+            new RESUME(),
+            new SUSPEND()
+        );
+        init_cmds();
+        init_dfs();
+        dai.register();
+        /* Performs the functionality of the IDA */
+        ida.iot_app();
+        //dai.add_shutdownhook();             
+    }
+    
+    /*--------------------------------------------------*/
+    /* Customizable part */
+    /* Declaration of ODF classes, generated by the DAC */
+    static class Size extends ODF {
+        public Size () {
+            super("Size");
+        }
+        public void pull(JSONArray data) {
+            /* parse data from packet, assign to every yi */
+        	if(selected && !suspended) {
+        		double y1 = data.getDouble(0); 
+        		ida.set_size(y1);
+        	}
+        	else {
+        		ida.set_size(0.0);
+        	}
+        }
+    }
+    static class Angle extends ODF {
+        public Angle () {
+            super("Angle");
+        }
+        public void pull(JSONArray data) {
+        	if(selected && !suspended) {
+        		double y1 = data.getDouble(0);
+        		ida.set_angle(y1);
+        	}
+        	else {
+        		ida.set_angle(0.0); //Default value
+        	}
+        }
+    }
+    static class Mouse extends IDF {
+        public Mouse () {
+            super("Mouse");
+        }
+        public void push(Object... raw_data) {
+        	if(selected && !suspended) {
+	        	JSONArray data = new JSONArray();
+	            data.put((double) raw_data[0]);
+	            data.put((double) raw_data[1]);
+	            dai.push(name, data);
+        	}
+        }
+    }
+    /* Initialization of command list and DF list, generated by the DAC */
+    static void init_cmds () {
+        add_command(
+        //    new SAMPLE_COMMAND ()
+        );
+    }
+    static void init_dfs () {
+        add_df(
+            new Size(),
+            new Angle(),
+            new Mouse()
+        );
+    }
+    
+    /* IDA Class */
+    public static class IDA extends PApplet{
+		/* DAI.pull() in the new version of DA */
+		/*
 		@Override
-		public void receive (String odf, DAN.ODFObject odf_object) {
-			logging("New data: "+ odf +", "+ odf_object.data.toString());
-            if(odf.equals("Size")) {
-                internal_ida_api.write(odf, odf_object.data);
-            } else if(odf.equals("Angle")) {
-                internal_ida_api.write(odf, odf_object.data);
-            } else if(odf.equals("Control")) {
-                internal_ida_api.write(odf, odf_object.data);
-			} else {
-				handle_error("Feature '"+ odf +"' not found");
-			}
-		}
-	}
-
-	static String mac_addr_cache = "";
-	static String get_mac_addr () {
-		if (!mac_addr_cache.equals("")) {
-			logging("Mac address cache: "+ mac_addr_cache);
-			return mac_addr_cache;
-		}
-
-		InetAddress ip;
-		try {
-			ip = InetAddress.getLocalHost();
-			System.out.println("Current IP address : " + ip.getHostAddress());
-			NetworkInterface network = NetworkInterface.getByInetAddress(ip);
-			byte[] mac = network.getHardwareAddress();
-			mac_addr_cache += String.format("%02X", mac[0]);
-			for (int i = 1; i < mac.length; i++) {
-				mac_addr_cache += String.format(":%02X", mac[i]);
-			}
-			logging(mac_addr_cache);
-			return mac_addr_cache;
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (SocketException e){
-			e.printStackTrace();
-		}
-
-		logging("Mac address cache retriving failed, use random string");
-		Random rn = new Random();
-		for (int i = 0; i < 12; i++) {
-			int a = rn.nextInt(16);
-			mac_addr_cache += "0123456789abcdef".charAt(a);
-		}
-		return mac_addr_cache;
-	}
-
-	static final String local_log_tag = "DAI";
-	
-    static private void logging (String format, Object... args) {
-        logging(String.format(format, args));
+		public void pull(String odf, JSONArray data) {
+			if (odf.equals("Control")) {
+	            String command = data.getString(0);
+	            JSONArray args = data.getJSONObject(1).getJSONArray("args");
+	            for (Command cmd: cmd_list) {
+	                if (command.equals(cmd.name)) {
+	                    cmd.run(args);
+	                    return;
+	                }
+	            }
+	            // Reports exception to IoTtalk 
+	        } else {
+	            for (DF df: df_list) {
+	                if (odf.equals(df.name)) {
+	                    ((ODF)df).write(odf_obj.data);
+	                }
+	            }
+	            // Reports exception to IoTtalk
+	        }
+		} 
+		
+		*/
+        
+    	public double size;
+    	public double angle;
+    	
+    	private void set_size(double size) {
+    		this.size = size;
+    	}
+    	
+    	private void set_angle(double angle) {
+    		this.angle = angle;
+    	}
+    	
+    	public void iot_app() {
+    		PApplet.runSketch(new String[]{"Dandelion"}, this);
+    	};
+    	
+    	
+        final int LINE_WEIGHT = 1500;
+        final int WIDTH = 1000;
+        final int HEIGHT = WIDTH * 2 / 3;
+        final float WINDOW_SIZE_SCALE = WIDTH / 900f;
+        final float s1 = 8.5f;          // short side
+        final float s2 = s1 / sin(radians(45));;       //long side
+        int stalk_len = 18;
+        float BACKGROUND_GRAY_LEVEL = 255f;
+        int FOREGROUND_GRAY_LEVEL = 0;
+        double current_angle, current_size, current_layer;
+        float b_x = s2 * cos(radians(60));
+        float b_y = s2 * sin(radians(60));
+        int delay = 150;
+        float r = 1;                      // rotate parameter
+        float count_r = 30f;              // rotate angle
+        @Override
+        public void setup() {
+            smooth();
+            size(WIDTH, HEIGHT);
+            current_angle = 0f;
+            current_size = 0f;
+        }
+        @Override
+        public void draw(){
+            draw(size, angle);
+        }
+        public void draw(double size, double angle){
+            current_size += (size - current_size) / delay;
+            current_angle += (angle - current_angle) / delay;
+            current_layer = current_size * 10;                   //10 is max_layer
+            
+            scale(2);
+            background(BACKGROUND_GRAY_LEVEL);
+            stroke(FOREGROUND_GRAY_LEVEL, LINE_WEIGHT);
+            float ro = (float)current_angle * 120f;
+            count_r = degrees(radians(ro));
+            translate(width/4, height/3.65f);
+            line(0,0,0,height/2);
+            textSize(7);
+            text("ODF Size: " + size, -250, 120);
+            text("ODF Angle: " + angle, -250, 130);
+            text("Device name: " + d_name, -250, 140);
+            fill(0);
+            angle_branch(0);
+        }
+        void angle_branch (int level) {
+            if (level >= 10 || level > current_layer) {
+                return;
+            }
+            float parameter = ((float)level / 20) + 1;
+            float degree_a = degrees(acos(((stalk_len * parameter - s1) / 2) / s2));
+            float target_x = stalk_len * cos(radians(120 - degree_a)) * parameter;
+            float target_y = -stalk_len * sin(radians(120 - degree_a)) * parameter;
+            float alpha_rate = (float)(current_layer - (int)current_layer);
+            float alpha = (FOREGROUND_GRAY_LEVEL - BACKGROUND_GRAY_LEVEL) * alpha_rate + BACKGROUND_GRAY_LEVEL;
+            float line_gray_level = (level + 1 > current_layer) ? alpha : FOREGROUND_GRAY_LEVEL;
+            pushMatrix();
+            rotate(radians(-count_r));
+            stroke(line_gray_level, LINE_WEIGHT);
+            line(0, 0, s1 * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, -b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
+            line(0, 0, target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
+            translate(target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
+            rotate(radians(2 * degree_a - 60));
+            line(0, 0, s1 * WINDOW_SIZE_SCALE,0);
+            line(0, 0, -b_x * WINDOW_SIZE_SCALE, b_y * WINDOW_SIZE_SCALE);
+            angle_branch(level + 1); 
+            popMatrix();
+            pushMatrix();
+            rotate(radians(count_r));
+            stroke(line_gray_level, LINE_WEIGHT);
+            line(0, 0, -s1 * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
+            line(0, 0, -target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
+            translate(-target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
+            rotate(-radians(2*degree_a-60));
+            line(0, 0, -s1 * WINDOW_SIZE_SCALE, 0);
+            line(0, 0, b_x * WINDOW_SIZE_SCALE, b_y * WINDOW_SIZE_SCALE);
+            angle_branch(level + 1);
+            popMatrix();
+        }
+        @Override
+        public void mouseMoved () {
+            ((IDF) get_df("Mouse")).push(mouseX, mouseY);
+        }
+		
+		
+		
     }
-
-    static void logging(String message) {
-        System.out.println("["+ local_log_tag +"] " + message);
-    }
-	
-	static void handle_error (String message) {
-		logging(message);
-	}
+    
+    
 }
