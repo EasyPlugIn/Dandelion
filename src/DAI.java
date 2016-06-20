@@ -1,12 +1,18 @@
 import java.util.ArrayList;
-import org.json.*;
-import DANapi.*;
-import DANapi.DANapi.*;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import processing.core.PApplet;
 @SuppressWarnings("serial")
-public class DAI implements DANapi.ODFHandler {
+public class DAI implements DAN.DAN2DAI {
 	static DAI dai = new DAI();
 	static IDA ida = new IDA();
+    static DAN dan = new DAN();
+    static String d_name = "Dandelion001";
+    static String d_id = "get_mac_addr";
+    static String u_name = "yb";
+    static Boolean is_sim = false;
 	
 	static abstract class DF {
         public DF (String name) {
@@ -95,7 +101,7 @@ public class DAI implements DANapi.ODFHandler {
                          JSONArray ul_cmd_params) {
             if(df_status_list == null) {}
             else if(ul_cmd_params == null) {
-                String flags = df_status_list.getString(0);
+                final String flags = df_status_list.getString(0);
                 for(int i = 0; i < flags.length(); i++) {
                     if(flags.charAt(i) == '0') {
                         df_list.get(i).selected = false;
@@ -103,7 +109,7 @@ public class DAI implements DANapi.ODFHandler {
                         df_list.get(i).selected = true;
                     }
                 }
-                dai.push("__Ctl_I__", new JSONArray(){{
+                dan.push("Control", new JSONArray(){{
 	            	put("SET_DF_STATUS_RSP");
 	            	put(new JSONObject(){{
 	            		put("cmd_params", new JSONArray(){{
@@ -126,7 +132,7 @@ public class DAI implements DANapi.ODFHandler {
             if(dl_cmd_params == null) {}
             else if(ul_cmd_params == null) {
                 suspended = false;
-                dai.push("__Ctl_I__", new JSONArray(){{
+                dan.push("Control", new JSONArray(){{
 	            	put("RESUME_RSP");
 	            	put(new JSONObject(){{
 	            		put("cmd_params", new JSONArray(){{
@@ -149,7 +155,7 @@ public class DAI implements DANapi.ODFHandler {
             if(dl_cmd_params == null) {}
             else if(ul_cmd_params == null) {
                 suspended = true;
-                dai.push("__Ctl_I__", new JSONArray(){{
+                dan.push("Control", new JSONArray(){{
 	            	put("SUSPEND_RSP");
 	            	put(new JSONObject(){{
 	            		put("cmd_params", new JSONArray(){{
@@ -163,44 +169,6 @@ public class DAI implements DANapi.ODFHandler {
         }
     }
     
-
-	static DANapi dan_api = new DAN();
-	static String d_name = "Dandelion001";
-	static String d_id = "get_mac_addr";
-	static String u_name = "yb";
-	static Boolean is_sim = false;
-		
-	
-	
-	/* register() */
-	public void register() {
-		
-		dan_api.init(this);
-        //JSONObject profile = new JSONObject();
-        JSONArray df_name_list = new JSONArray();
-        for(int i = 0; i < df_list.size(); i++) {
-			df_name_list.put(df_list.get(i).name);
-        }
-        JSONObject profile = new JSONObject() {{
-        	put("d_name", d_name);
-        	put("dm_name", "Dandelion"); //deleted
-        	put("u_name", u_name);
-        	put("df_list", df_name_list);
-        	put("is_sim", is_sim);
-        	
-        }};
-        try {
-        	
-            df_name_list.put("__Ctl_O__");  /* this line will be deleted in the new version of DA */
-            df_name_list.put("__Ctl_I__");  /* this line will be deleted in the new version of DA */
-            
-            dan_api.register("http://localhost:9999", d_id , profile); /* Subject to change */
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-	}
-	
 	public void add_shutdownhook() {
 		Runtime.getRuntime().addShutdownHook(new Thread () {
             @Override
@@ -212,44 +180,14 @@ public class DAI implements DANapi.ODFHandler {
 	
 	/* deregister() */
 	public void deregister() {
-		dan_api.deregister();
-		// for(int i = 0; i < 3; i++) {
-		//     if(dan_api.deregister())
-		//         return;
-		// }
+		dan.deregister();
 	}
-	/* push() */
-	public void push(String idf, JSONArray data) {
-	    dan_api.push(idf, data);
-	}
-	/* pull() */
+	
 	@Override
-	/* receive() will be renamed to pull() in the new version of DA*/
-	public void receive(String odf_name, ODFObject odf_obj) {
-	    if (odf_obj.event != null) {
-	        switch (odf_obj.event) {
-			    case NEW_EC_DISCOVERED:
-			        if (!dan_api.session_status()) {
-			            dan_api.reregister(odf_obj.message);
-				    }
-				    break;
-				case REGISTER_FAILED:
-					//handle_error("Register failed: "+ odf_obj.message);
-					break;
-				case REGISTER_SUCCEED:
-					//logging("Register successed: "+ odf_object.message); 
-                    dan_api.subscribe("__Ctl_O__", this); 
-                    dan_api.subscribe("Size", this); 
-                    dan_api.subscribe("Angle", this);
-					break;
-				default:
-					break;
-			}
-	        return;
-	    }
-		if (odf_name.equals("__Ctl_O__")) {
-            String cmd_name = odf_obj.data.getString(0);
-            JSONArray dl_cmd_params = odf_obj.data.getJSONObject(1).getJSONArray("cmd_params");
+	public void pull(final String odf_name, final JSONArray data) {
+		if (odf_name.equals("Control")) {
+            final String cmd_name = data.getString(0);
+            JSONArray dl_cmd_params = data.getJSONObject(1).getJSONArray("cmd_params");
             Command cmd = get_cmd(cmd_name);
             if (cmd != null) {
                 cmd.run(dl_cmd_params, null);
@@ -257,7 +195,7 @@ public class DAI implements DANapi.ODFHandler {
             }
             
             /* Reports the exception to IoTtalk*/
-            dan_api.push("__Ctl_I__", new JSONArray(){{
+            dan.push("Control", new JSONArray(){{
             	put("UNKNOWN_COMMAND");
             	put(new JSONObject(){{
             		put("cmd_params", new JSONArray(){{
@@ -268,12 +206,12 @@ public class DAI implements DANapi.ODFHandler {
         } else {
         	ODF odf = ((ODF)get_df(odf_name));
         	if (odf != null) {
-        		odf.pull(odf_obj.data);
+        		odf.pull(data);
                 return;
             }
             
             /* Reports the exception to IoTtalk*/
-            dan_api.push("__Ctl_I__", new JSONArray(){{
+            dan.push("Control", new JSONArray(){{
             	put("UNKNOWN_ODF");
             	put(new JSONObject(){{
             		put("cmd_params", new JSONArray(){{
@@ -294,10 +232,23 @@ public class DAI implements DANapi.ODFHandler {
         );
         init_cmds();
         init_dfs();
-        dai.register();
+        final JSONArray df_name_list = new JSONArray();
+        for(int i = 0; i < df_list.size(); i++) {
+            df_name_list.put(df_list.get(i).name);
+        }
+        JSONObject profile = new JSONObject() {{
+            put("d_name", d_name);
+            put("dm_name", "Dandelion"); //deleted
+            put("u_name", u_name);
+            put("df_list", df_name_list);
+            put("is_sim", is_sim);
+            
+        }};
+        dan.init("http://localhost:9999", d_id , profile, dai);
+        dai.add_shutdownhook();
+
         /* Performs the functionality of the IDA */
-        ida.iot_app();
-        //dai.add_shutdownhook();             
+        ida.iot_app();             
     }
     
     /*--------------------------------------------------*/
@@ -308,13 +259,13 @@ public class DAI implements DANapi.ODFHandler {
             super("Size");
         }
         public void pull(JSONArray data) {
+            System.out.println("Size: "+ data.toString());
             /* parse data from packet, assign to every yi */
         	if(selected && !suspended) {
-        		double y1 = data.getDouble(0); 
-        		ida.set_size(y1);
+        		ida.size = data.getDouble(0);
         	}
         	else {
-        		ida.set_size(0.0);
+                ida.size = 0.0; // default value
         	}
         }
     }
@@ -324,11 +275,10 @@ public class DAI implements DANapi.ODFHandler {
         }
         public void pull(JSONArray data) {
         	if(selected && !suspended) {
-        		double y1 = data.getDouble(0);
-        		ida.set_angle(y1);
+        	    ida.angle = data.getDouble(0);
         	}
         	else {
-        		ida.set_angle(0.0); //Default value
+                ida.angle = 0.0;
         	}
         }
     }
@@ -341,7 +291,7 @@ public class DAI implements DANapi.ODFHandler {
 	        	JSONArray data = new JSONArray();
 	            data.put((double) raw_data[0]);
 	            data.put((double) raw_data[1]);
-	            dai.push(name, data);
+	            dan.push(name, data);
         	}
         }
     }
@@ -361,42 +311,8 @@ public class DAI implements DANapi.ODFHandler {
     
     /* IDA Class */
     public static class IDA extends PApplet{
-		/* DAI.pull() in the new version of DA */
-		/*
-		@Override
-		public void pull(String odf, JSONArray data) {
-			if (odf.equals("Control")) {
-	            String command = data.getString(0);
-	            JSONArray args = data.getJSONObject(1).getJSONArray("args");
-	            for (Command cmd: cmd_list) {
-	                if (command.equals(cmd.name)) {
-	                    cmd.run(args);
-	                    return;
-	                }
-	            }
-	            // Reports exception to IoTtalk 
-	        } else {
-	            for (DF df: df_list) {
-	                if (odf.equals(df.name)) {
-	                    ((ODF)df).write(odf_obj.data);
-	                }
-	            }
-	            // Reports exception to IoTtalk
-	        }
-		} 
-		
-		*/
-        
     	public double size;
     	public double angle;
-    	
-    	private void set_size(double size) {
-    		this.size = size;
-    	}
-    	
-    	private void set_angle(double angle) {
-    		this.angle = angle;
-    	}
     	
     	public void iot_app() {
     		PApplet.runSketch(new String[]{"Dandelion"}, this);
@@ -427,9 +343,12 @@ public class DAI implements DANapi.ODFHandler {
         }
         @Override
         public void draw(){
-            draw(size, angle);
-        }
-        public void draw(double size, double angle){
+            if (size > 1) {
+                size = 1;
+            }
+            if (angle > 1) {
+                angle = 1;
+            }
             current_size += (size - current_size) / delay;
             current_angle += (angle - current_angle) / delay;
             current_layer = current_size * 10;                   //10 is max_layer
@@ -442,8 +361,8 @@ public class DAI implements DANapi.ODFHandler {
             translate(width/4, height/3.65f);
             line(0,0,0,height/2);
             textSize(7);
-            text("ODF Size: " + size, -250, 120);
-            text("ODF Angle: " + angle, -250, 130);
+            text(String.format("ODF Size: %f (%f)", size, current_size), -250, 120);
+            text(String.format("ODF Angle: %f (%f)", angle, current_angle), -250, 130);
             text("Device name: " + d_name, -250, 140);
             fill(0);
             angle_branch(0);
@@ -488,10 +407,5 @@ public class DAI implements DANapi.ODFHandler {
         public void mouseMoved () {
             ((IDF) get_df("Mouse")).push(mouseX, mouseY);
         }
-		
-		
-		
     }
-    
-    
 }

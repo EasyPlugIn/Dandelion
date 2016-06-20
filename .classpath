@@ -5,6 +5,5 @@
 	<classpathentry kind="lib" path="libs/json-20160212.jar"/>
 	<classpathentry kind="lib" path="libs/processing/core.jar"/>
 	<classpathentry kind="lib" path="libs/CSMapi.jar"/>
-	<classpathentry kind="lib" path="libs/DANapi.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
