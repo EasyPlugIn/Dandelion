@@ -26,7 +26,6 @@ public class DAI implements DAN.DAN2DAI {
         public IDF (String name) {
             super(name);
         }
-        abstract public void push(Object... raw_data);
     }
 	
     static abstract class ODF extends DF {
@@ -97,11 +96,10 @@ public class DAI implements DAN.DAN2DAI {
         public SET_DF_STATUS() {
             super("SET_DF_STATUS");
         }
-        public void run(JSONArray df_status_list,
-                         JSONArray ul_cmd_params) {
-            if(df_status_list == null) {}
-            else if(ul_cmd_params == null) {
-                final String flags = df_status_list.getString(0);
+        public void run(final JSONArray df_status_list,
+                         final JSONArray updated_df_status_list) {
+            if(df_status_list != null && updated_df_status_list == null) {
+            	final String flags = df_status_list.getString(0);
                 for(int i = 0; i < flags.length(); i++) {
                     if(flags.charAt(i) == '0') {
                         df_list.get(i).selected = false;
@@ -109,16 +107,25 @@ public class DAI implements DAN.DAN2DAI {
                         df_list.get(i).selected = true;
                     }
                 }
-                dan.push("Control", new JSONArray(){{
-	            	put("SET_DF_STATUS_RSP");
-	            	put(new JSONObject(){{
-	            		put("cmd_params", new JSONArray(){{
-	            			put(flags);
-	            		}});
-	            	}});
-	            }});
+	            get_cmd("SET_DF_STATUS_RSP").run(
+            		null,
+            		new JSONArray(){{
+		            	put(flags);
+		            }}
+        		);
+            }
+            else if(df_status_list == null && updated_df_status_list != null) {
+            	dan.push(
+                		"Control",
+                		new JSONArray(){{
+    	                	put("SET_DF_STATUS_RSP");
+    	                	put(new JSONObject(){{
+    	                		put("cmd_params", updated_df_status_list);
+    	                	}});
+                		}}
+            		);
             } else {
-                System.out.println("Both the df_status_list and the ul_cmd_params are null");
+                System.out.println("Both the df_status_list and the updated_df_status_list are null");
             }
         }
     }
@@ -127,21 +134,28 @@ public class DAI implements DAN.DAN2DAI {
         public RESUME() {
             super("RESUME");
         }
-        public void run(JSONArray dl_cmd_params,
-                         JSONArray ul_cmd_params) {
-            if(dl_cmd_params == null) {}
-            else if(ul_cmd_params == null) {
-                suspended = false;
-                dan.push("Control", new JSONArray(){{
-	            	put("RESUME_RSP");
-	            	put(new JSONObject(){{
-	            		put("cmd_params", new JSONArray(){{
-	            			put("OK");
-	            		}});
-	            	}});
+        public void run(final JSONArray dl_cmd_params,
+                         final JSONArray exec_result) {
+            if(dl_cmd_params != null && exec_result == null) {
+            	suspended = false;
+                get_cmd("RESUME_RSP").run(
+                	null, 
+                	new JSONArray(){{
+                	    put("OK");
 	            }});
+            }
+            else if(dl_cmd_params == null && exec_result != null) {
+            	dan.push(
+                		"Control",
+                		new JSONArray(){{
+    	                	put("RESUME_RSP");
+    	                	put(new JSONObject(){{
+    	                		put("cmd_params", exec_result);
+    	                	}});
+                		}}
+            		);
             } else {
-            	System.out.println("Both the dl_cmd_params and the ul_cmd_params are null!");
+            	System.out.println("Both the dl_cmd_params and the exec_result are null!");
             }
         }
     }
@@ -151,20 +165,27 @@ public class DAI implements DAN.DAN2DAI {
             super("SUSPEND");
         }
         public void run(JSONArray dl_cmd_params,
-                         JSONArray ul_cmd_params) {
-            if(dl_cmd_params == null) {}
-            else if(ul_cmd_params == null) {
-                suspended = true;
-                dan.push("Control", new JSONArray(){{
-	            	put("SUSPEND_RSP");
-	            	put(new JSONObject(){{
-	            		put("cmd_params", new JSONArray(){{
-	            			put("OK");
-	            		}});
-	            	}});
-	            }});
+                         JSONArray exec_result) {
+            if(dl_cmd_params != null && exec_result == null) {
+            	suspended = true;
+                get_cmd("SUSPEND_RSP").run(
+                	null, 
+                	new JSONArray(){{
+                		put("OK");
+    	        }});
+            }
+            else if(dl_cmd_params == null && exec_result != null) {
+            	dan.push(
+                		"Control",
+                		new JSONArray(){{
+    	                	put("SUSPEND_RSP");
+    	                	put(new JSONObject(){{
+    	                		put("cmd_params", exec_result);
+    	                	}});
+                		}}
+            		);
             } else {
-            	System.out.println("Both the dl_cmd_params and the ul_cmd_params are null!");
+            	System.out.println("Both the dl_cmd_params and the exec_result are null!");
             }
         }
     }
@@ -242,7 +263,6 @@ public class DAI implements DAN.DAN2DAI {
             put("u_name", u_name);
             put("df_list", df_name_list);
             put("is_sim", is_sim);
-            
         }};
         dan.init("http://localhost:9999", d_id , profile, dai);
         dai.add_shutdownhook();
@@ -253,6 +273,21 @@ public class DAI implements DAN.DAN2DAI {
     
     /*--------------------------------------------------*/
     /* Customizable part */
+    
+    static class Mouse extends IDF {
+        public Mouse () {
+            super("Mouse");
+        }
+        public void push(double x, double y) {
+        	if(selected && !suspended) {
+	        	JSONArray data = new JSONArray();
+	            data.put(x);
+	            data.put(y);
+	            dan.push(name, data);
+        	}
+        }
+    }
+    
     /* Declaration of ODF classes, generated by the DAC */
     static class Size extends ODF {
         public Size () {
@@ -282,19 +317,24 @@ public class DAI implements DAN.DAN2DAI {
         	}
         }
     }
-    static class Mouse extends IDF {
-        public Mouse () {
-            super("Mouse");
+    static class Color extends ODF {
+        public Color () {
+            super("Color");
         }
-        public void push(Object... raw_data) {
+        public void pull(JSONArray data) {
         	if(selected && !suspended) {
-	        	JSONArray data = new JSONArray();
-	            data.put((double) raw_data[0]);
-	            data.put((double) raw_data[1]);
-	            dan.push(name, data);
+        	    ida.color_Red = data.getDouble(0);
+        	    ida.color_Green = data.getDouble(1);
+        	    ida.color_Blue = data.getDouble(2);
+        	}
+        	else {
+        		ida.color_Red = 0.0;
+        	    ida.color_Green = 0.0;
+        	    ida.color_Blue = 0.0;
         	}
         }
     }
+    
     /* Initialization of command list and DF list, generated by the DAC */
     static void init_cmds () {
         add_command(
@@ -303,16 +343,21 @@ public class DAI implements DAN.DAN2DAI {
     }
     static void init_dfs () {
         add_df(
+    		new Mouse(),
             new Size(),
             new Angle(),
-            new Mouse()
+            new Color()
+            
         );
     }
     
     /* IDA Class */
     public static class IDA extends PApplet{
-    	public double size;
-    	public double angle;
+    	public double size = 0.0;
+    	public double angle = 0.0;
+    	public double color_Red = 0.0;
+    	public double color_Green = 0.0;
+    	public double color_Blue = 0.0;
     	
     	public void iot_app() {
     		PApplet.runSketch(new String[]{"Dandelion"}, this);
@@ -352,23 +397,23 @@ public class DAI implements DAN.DAN2DAI {
             current_size += (size - current_size) / delay;
             current_angle += (angle - current_angle) / delay;
             current_layer = current_size * 10;                   //10 is max_layer
-            
-            scale(2);
+            strokeWeight(1.4f);
             background(BACKGROUND_GRAY_LEVEL);
-            stroke(FOREGROUND_GRAY_LEVEL, LINE_WEIGHT);
+            //stroke(FOREGROUND_GRAY_LEVEL, LINE_WEIGHT);
+            stroke((float)color_Red, (float)color_Green, (float)color_Blue, LINE_WEIGHT);
             float ro = (float)current_angle * 120f;
             count_r = degrees(radians(ro));
-            translate(width/4, height/3.65f);
+            translate(width/2, height/2);
             line(0,0,0,height/2);
-            textSize(7);
-            text(String.format("ODF Size: %f (%f)", size, current_size), -250, 120);
-            text(String.format("ODF Angle: %f (%f)", angle, current_angle), -250, 130);
-            text("Device name: " + d_name, -250, 140);
-            fill(0);
+//            textSize(7);
+//            text(String.format("ODF Size: %f (%f)", size, current_size), -250, 120);
+//            text(String.format("ODF Angle: %f (%f)", angle, current_angle), -250, 130);
+//            text("Device name: " + d_name, -250, 140);
+//           fill(0);
             angle_branch(0);
         }
         void angle_branch (int level) {
-            if (level >= 10 || level > current_layer) {
+            if (level >= 10 || level >= current_layer) {
                 return;
             }
             float parameter = ((float)level / 20) + 1;
@@ -380,7 +425,8 @@ public class DAI implements DAN.DAN2DAI {
             float line_gray_level = (level + 1 > current_layer) ? alpha : FOREGROUND_GRAY_LEVEL;
             pushMatrix();
             rotate(radians(-count_r));
-            stroke(line_gray_level, LINE_WEIGHT);
+            //stroke(line_gray_level, LINE_WEIGHT);
+            stroke((float)color_Red, (float)color_Green, (float)color_Blue, LINE_WEIGHT);
             line(0, 0, s1 * WINDOW_SIZE_SCALE, 0);
             line(0, 0, -b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
             line(0, 0, target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
@@ -392,7 +438,8 @@ public class DAI implements DAN.DAN2DAI {
             popMatrix();
             pushMatrix();
             rotate(radians(count_r));
-            stroke(line_gray_level, LINE_WEIGHT);
+            //stroke(line_gray_level, LINE_WEIGHT);
+            stroke((float)color_Red, (float)color_Green, (float)color_Blue, LINE_WEIGHT);
             line(0, 0, -s1 * WINDOW_SIZE_SCALE, 0);
             line(0, 0, b_x * WINDOW_SIZE_SCALE, -b_y * WINDOW_SIZE_SCALE);
             line(0, 0, -target_x * WINDOW_SIZE_SCALE, target_y * WINDOW_SIZE_SCALE);
@@ -405,7 +452,7 @@ public class DAI implements DAN.DAN2DAI {
         }
         @Override
         public void mouseMoved () {
-            ((IDF) get_df("Mouse")).push(mouseX, mouseY);
+            ((Mouse) get_df("Mouse")).push(mouseX, mouseY);
         }
     }
 }
