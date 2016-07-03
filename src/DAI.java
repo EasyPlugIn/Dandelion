@@ -378,8 +378,8 @@ public class DAI implements DAN.DAN2DAI {
     	}
     	
     	
-        final int WIDTH = 1000;
-        final int HEIGHT = WIDTH * 2 / 3;
+        final int WIDTH = 1920;
+        final int HEIGHT = 1080;
         final float s1 = WIDTH * 0.012f;            // short side
         final float s2 = s1 / sin(radians(45));     // long side
         final float stalk_len = s1 * 2;
@@ -426,7 +426,7 @@ public class DAI implements DAN.DAN2DAI {
             float ro = (float)current_angle * 120f;
             count_r = degrees(radians(ro));
             translate(width / 2, height * 5 / 8);
-            line(0, 0, 0, height / 2);
+            line(0, 0, 0, height * 3 / 8);
             angle_branch(0);
         }
         void angle_branch (int level) {
