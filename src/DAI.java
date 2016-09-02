@@ -17,8 +17,6 @@ public class DAI implements DAN.DAN2DAI {
 	static DAI dai = new DAI();
 	static IDA ida = new IDA();
     static DAN dan = new DAN();
-//    static String d_name = "Dandelion001";
-//    static String d_id = GetMacAddress.get_mac_addr("WINDOWS");
     static String d_name = "";
     static String u_name = "yb";
     static Boolean is_sim = false;
@@ -26,12 +24,12 @@ public class DAI implements DAN.DAN2DAI {
     static boolean is_resgister = false;
     static String info = "";
     
-    static float bgColor;
-    static float length;//stalk_len
-    static float thickness;
-    static float rate;//stalk_increase_rate
-    static int display_width;//sherry0831
-    static int display_height;
+    static float bgcolor = 0;
+    static float length = 16;  //stalk_len
+    static float thickness = 1;
+    static float rate = 20;    //stalk_increase_rate
+    static int display_width = 1000;
+    static int display_height = 700;
 	static abstract class DF {
         public DF (String name) {
             this.name = name;
@@ -264,102 +262,89 @@ public class DAI implements DAN.DAN2DAI {
 	}
     
     
-   static private String get_config_ec () {
-        try {
-            /* assume that the config file has only one line,
-             *  which is the IP address of the EC (without port number)*/
-            BufferedReader br = new BufferedReader(new FileReader(config_filename));
-            try {
-                String line = br.readLine();
-                if (line != null) {
-                    return line;
-                }
-                return "localhost";
-            } finally {
-                br.close();
-            }
-        } catch (IOException e) {
-            return "localhost";
-        }
-    }
-	
-   /* get_config_parameter */
-   static private void get_params() {
-	    try {
-	        BufferedReader br = new BufferedReader(new FileReader(config_filename));
-   	    try {
-   	    	br.readLine(); //pass ip
-   	        String line1 = br.readLine();
-   	        if (line1 != null) {
-   	        	String[] arr1 = line1.split("=");
-   	        	String res1 = arr1[1];
-   	        	bgColor = Float.parseFloat(res1);
-   	        }
-   	        else {
-   	        	bgColor = 0;
-   	        }
-   	        String line2 = br.readLine();
-   	        if (line2 != null) {
-   	        	String[] arr2 = line2.split("=");
-   	        	String res2 = arr2[1];
-   	        	length = Float.parseFloat(res2);
-   	        }
-   	        else {
-   	        	length = 16;
-   	        }
-   	        String line3 = br.readLine();
-   	        if (line3 != null) {
-   	        	String[] arr3 = line3.split("=");
-   	        	String res3 = arr3[1];
-   	        	thickness = Float.parseFloat(res3);
-   	        }
-   	        else {
-   	        	thickness = 1;
-   	        }
-   	        String line4 = br.readLine();
-   	        if (line4 != null) {
-   	        	String[] arr4 = line4.split("=");
-   	        	String res4 = arr4[1];
-   	        	rate = Float.parseFloat(res4);
-   	        }
-   	        else {
-   	        	rate = 20;
-   	        }
-   	        
-   	        String line5 = br.readLine();
-   	        if (line5 != null) {
-   	        	String[] arr5 = line5.split("=");
-   	        	String res5 = arr5[1];
-   	        	display_width = Integer.parseInt(res5);
-   	        	System.out.println("screen_width = "+ res5);
-   	        }
-   	        else {
-   	        	display_width = 1000;
-   	        }
-   	        
-   	        String line6 = br.readLine();
-   	        if (line6 != null) {
-   	        	String[] arr6 = line6.split("=");
-   	        	String res6 = arr6[1];
-   	        	display_height = Integer.parseInt(res6);
-   	        	System.out.println("screen_height = "+ res6);
-   	        }
-   	        else {
-   	        	display_height = 700;
-   	        }
-   	    } finally {
-   	        br.close();
-   	    }
-	    } catch (IOException e) {
-	    	System.out.println(e.getMessage());
-	    	bgColor = 0;
-       	    length = 16;
-       	    thickness = 1;
-       	    rate = 20;
-       	    display_width = 1000;
-       	    display_height = 700;
-	    }
-	}
+//   static private String get_config_ec () {
+//        try {
+//            /* assume that the config file has only one line,
+//             *  which is the IP address of the EC (without port number)*/
+//            BufferedReader br = new BufferedReader(new FileReader(config_filename));
+//            try {
+//                String line = br.readLine();
+//                if (line != null) {
+//                    return line;
+//                }
+//                return "localhost";
+//            } finally {
+//                br.close();
+//            }
+//        } catch (IOException e) {
+//            return "localhost";
+//        }
+//    }
+   static private void load_config () {
+       BufferedReader br = null;
+       try {
+           br = new BufferedReader(new FileReader(config_filename));
+           String line;
+           while ((line = br.readLine()) != null) {
+               line = line.trim();
+               if (line.startsWith("#")) {
+                   continue;
+               }
+
+               String[] tokens = line.split("=");
+               if (tokens.length != 2) {
+                   continue;
+               }
+               tokens[0] = tokens[0].trim().toLowerCase();
+               tokens[1] = tokens[1].trim().toLowerCase();
+               set_config_value(tokens[0], tokens[1]);
+           }
+       } catch (IOException e) {
+       } finally {
+           try {
+               if (br != null) br.close();
+           } catch (IOException e) {
+               e.printStackTrace();
+           }
+       }
+   }
+
+   /*setting the parameter of dandelion*/
+   static private void set_config_value (String key, String text) {
+       switch (key) {
+       case "endpoint":
+           endpoint = text;
+           if (!endpoint.startsWith("http://")) {
+               endpoint = "http://" + endpoint;
+           }
+           if (endpoint.length() - endpoint.replace(":", "").length() == 1) {
+               endpoint += ":9999";
+           }
+           break;
+       case "bgcolor":
+           bgcolor = Float.parseFloat(text);
+           break;
+       case "length":
+           length = Float.parseFloat(text);
+           break;
+       case "thickness":
+           thickness = Float.parseFloat(text);
+           break;
+       case "rate":
+           rate = Float.parseFloat(text);
+           break;
+       case "display_width":
+           display_width = Integer.parseInt(text);
+           break;
+       case "display_height":
+           display_height = Integer.parseInt(text);
+           break;
+       default:
+           System.out.printf("Unknown setting: [%s = %s]\n", key, text);
+           break;
+       }
+   }
+   
 
     /* The main() function */
     public static void main(String[] args) {
@@ -374,14 +359,7 @@ public class DAI implements DAN.DAN2DAI {
         for(int i = 0; i < df_list.size(); i++) {
             df_name_list.put(df_list.get(i).name);
         }
-        
-        String endpoint = get_config_ec();
-        if (!endpoint.startsWith("http://")) {
-            endpoint = "http://" + endpoint;
-        }
-        if (endpoint.length() - endpoint.replace(":", "").length() == 1) {
-            endpoint += ":9999";
-        }
+        load_config();
         
         JSONObject profile = new JSONObject() {{
             put("dm_name", dm_name); //deleted
@@ -527,17 +505,9 @@ public class DAI implements DAN.DAN2DAI {
         @Override
         public void setup() {
             smooth();
-            get_params();
             size(display_width, display_height);
         }
-        /*setting the parameter of dandelion
-         * the parameter is following:
-         * 1. stalk_len = length：莖的長度
-           2. background(bgColor)：背景顏色 
-           3. strokeWeight(thickness)：粗細
-           4. rate：生長速率
-           5.
-         * */
+
 
         @Override
         public void draw(){
@@ -552,47 +522,34 @@ public class DAI implements DAN.DAN2DAI {
             current_color_r = approximate(current_color_r, color_r);
             current_color_g = approximate(current_color_g, color_g);
             current_color_b = approximate(current_color_b, color_b);
-            //current_layer = current_size * 10;                   //10 is max_layer
-            //current_layer = current_size; //sherry 0818
-            //strokeWeight(1.4f);
             strokeWeight(thickness);
-            //background(BACKGROUND_GRAY_LEVEL);
-            background(bgColor);
-            //length = get_length();
-            background(0);
+            background(bgcolor);
             textSize(8);
             text(info, 0, display_height - 8);
-            fill(255);
+            if(bgcolor==255)
+                fill(0);
+            else
+            	fill(255);
             textSize(TEXT_SIZE);
             stack_text("");
             stack_text("Color: (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f)", color_r, color_g, color_b, current_color_r, current_color_g, current_color_b);
             stack_text("ODF Angle: %f (%f)", angle, current_angle);
             stack_text("ODF Size: %f (%f)", size, current_size);
             stack_text("Device name: %s", d_name);
-            fill(0);
-            
+                     
             stroke((float)current_color_r, (float)current_color_g, (float)current_color_b, 255);
-            //float ro = (float)current_angle * 120f;
-            //float ro = (float)current_angle;//sherry0818
-            //count_r = degrees(radians(ro));
             translate(display_width / 2, display_height * 5 / 8);
             line(0, 0, 0, display_height * 3 / 8);
             angle_branch(0);
         }
-        /*void angle_branch (int level) {
-            if (level >= 10 || level >= current_layer) {
-            	return; 
-            }*/
+
             void angle_branch (int level) {
                 if (level >= current_size) {
             	    return; 
             }
-            //float parameter = ((float)level / 20) + 1;
             float parameter = ((float)level / rate) + 1;
             float alpha;
             float degree_a = degrees(acos(0.5f * sin(45)*(2*parameter - 1)));
-//            float target_x = 2 * s1 * cos(radians(120 - degree_a)) * parameter;
-//            float target_y = -2 * s1 * sin(radians(120 - degree_a)) * parameter;
             float target_x = 2 * length * cos(radians(120 - degree_a)) * parameter;
             float target_y = -2 * length * sin(radians(120 - degree_a)) * parameter;
             if (level + 1 > current_size) { // outest layer
@@ -600,43 +557,26 @@ public class DAI implements DAN.DAN2DAI {
             } else {
                 alpha = 255;
             }
-            /*float degree_a = degrees(acos(((length * parameter - s1) / 2) / s2));
-            float target_x = length * cos(radians(120 - degree_a)) * parameter;
-            float target_y = -length * sin(radians(120 - degree_a)) * parameter;
-            
-            if (level + 1 > current_layer) { // outest layer
-                alpha = (float)(current_layer - (int)current_layer) * 255;
-            } else {
-                alpha = 255;
-            }*/
             pushMatrix();
-            //rotate(radians(-count_r));
             rotate(radians(-current_angle));
             stroke(current_color_r,current_color_g,current_color_b, alpha);
-            //line(0, 0, s1, 0);
             line(0, 0, s2, 0);
             line(0, 0, -b_x, -b_y);
             line(0, 0, target_x, target_y);
             translate(target_x, target_y);
-            //rotate(radians(2 * degree_a - 60));
             rotate(radians(degree_a));
-            //line(0, 0, s1, 0);
             line(0, 0, s2, 0);
             line(0, 0, -b_x, b_y);
             angle_branch(level + 1); 
             popMatrix();
             pushMatrix();
-            //rotate(radians(count_r));
             rotate(radians(current_angle));
-            //stroke((float)current_color_r, (float)current_color_g, (float)current_color_b, alpha);
             stroke(current_color_r, current_color_g, current_color_b, alpha);
-            //line(0, 0, -s1, 0);
             line(0, 0, -s2, 0);
             line(0, 0, b_x, -b_y);
             line(0, 0, -target_x, target_y);
             translate(-target_x, target_y);
             rotate(-radians(degree_a));
-            //line(0, 0, -s1, 0);
             line(0, 0, -s2, 0);
             line(0, 0, b_x, b_y);
             angle_branch(level + 1);
