@@ -17,8 +17,7 @@ public class DAN extends Thread {
     final int IOTTALK_BROADCAST_PORT = 17000;
     final int RETRY_COUNT = 3;
     final int RETRY_INTERVAL = 2000;
-    public final String log_tag = "MorSensor";
-    DAN2DAI dai2dai_ref;
+    DAN2DAI dan2dai_ref;
     String mac_addr;
     JSONObject profile;
     boolean registered;
@@ -29,9 +28,9 @@ public class DAN extends Thread {
     String ctl_timestamp;
     boolean suspended;
 
-    public String init(DAN2DAI dai2dai_ref, String endpoint, String mac_addr, JSONObject profile) {
+    public String init(DAN2DAI dan2dai_ref, String endpoint, String mac_addr, JSONObject profile) {
         logging("init()");
-        this.dai2dai_ref = dai2dai_ref;
+        this.dan2dai_ref = dan2dai_ref;
         this.mac_addr = mac_addr.replace(":", "");
         if (endpoint == null) {
             endpoint = search();
@@ -161,13 +160,11 @@ public class DAN extends Thread {
         logging("Polling: starts");
         while (registered) {
             try {
-                JSONArray data = pull("__Ctl_O__", 0);
-                if (data != null) {
-                    if (handle_control_message(data)) {
-                        dai2dai_ref.pull("Control", data);
-                    } else {
-                        logging("The command message is problematic, abort");
-                    }
+                JSONArray data = pull(-1);
+                if (check_command_message(data)) {
+                    dan2dai_ref.pull("Control", data);
+                } else {
+                    logging("The command message is null or is problematic, abort");
                 }
 
                 for (int i = 0; i < df_list.length; i++) {
@@ -177,11 +174,11 @@ public class DAN extends Thread {
                     if (!df_is_odf[i] || !df_selected[i]) {
                         continue;
                     }
-                    data = pull(df_list[i], i);
+                    data = pull(i);
                     if (data == null) {
                         continue;
                     }
-                    dai2dai_ref.pull(df_list[i], data);
+                    dan2dai_ref.pull(df_list[i], data);
                 }
             } catch (JSONException e) {
                 logging("Polling: JSONException: %s", e.getMessage());
@@ -201,13 +198,19 @@ public class DAN extends Thread {
         logging("Polling: stops");
     }
 
-    JSONArray pull (String odf_name, int index) throws JSONException, CSMapi.CSMError, InterruptedIOException {
+    JSONArray pull (int index) throws JSONException, CSMapi.CSMError, InterruptedIOException {
+        String odf_name;
+        if (index == -1) {
+            odf_name = "__Ctl_O__";
+        } else {
+            odf_name = df_list[index];
+        }
         JSONArray dataset = CSMapi.pull(mac_addr, odf_name);
         if (dataset == null || dataset.length() == 0) {
             return null;
         }
         String timestamp = dataset.getJSONArray(0).getString(0);
-        if (odf_name.equals("__Ctl_O__")) {
+        if (index == -1) {
             if (ctl_timestamp.equals(timestamp)) {
                 return null;
             }
@@ -221,7 +224,10 @@ public class DAN extends Thread {
         return dataset.getJSONArray(0).getJSONArray(1);
     }
 
-    boolean handle_control_message (JSONArray data) {
+    boolean check_command_message(JSONArray data) {
+        if (data == null) {
+            return false;
+        }
         logging(data.toString());
         try {
             switch (data.getString(0)) {
@@ -248,7 +254,7 @@ public class DAN extends Thread {
             }
             return true;
         } catch (JSONException e) {
-            logging("handle_control_message(): JSONException");
+            logging("check_command_message(): JSONException");
         }
         return false;
     }
@@ -262,19 +268,18 @@ public class DAN extends Thread {
             DatagramSocket socket = new DatagramSocket(null);
             socket.setReuseAddress(true);
             socket.bind(new InetSocketAddress("0.0.0.0", IOTTALK_BROADCAST_PORT));
-            byte[] lmessage = new byte[20];
-            DatagramPacket packet = new DatagramPacket(lmessage, lmessage.length);
+            byte[] payload = new byte[20];
+            DatagramPacket packet = new DatagramPacket(payload, payload.length);
             while (true) {
                 socket.receive(packet);
-                String broadcast_message = new String(lmessage, 0, packet.getLength());
-                if (broadcast_message.equals("easyconnect")) {
+                String broadcast_msg = new String(payload, 0, packet.getLength());
+                if (broadcast_msg.equals("easyconnect")) {
                     InetAddress ec_addr = packet.getAddress();
                     socket.close();
                     return "http://"+ ec_addr.getHostAddress() +":9999";
                 }
             }
         } catch (IOException e) {
-            logging("init(): IOException");
             return null;
         }
     }
@@ -284,6 +289,6 @@ public class DAN extends Thread {
     }
 
     void logging (String message) {
-        System.out.printf("[%s][DAN] %s%n", log_tag, message);
+        System.out.printf("[DAN] %s%n", message);
     }
 }

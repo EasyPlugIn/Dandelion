@@ -1,4 +1,4 @@
-endpoint=http://ip_address:9999
+endpoint=http://localhost:9999
 bgcolor = 0
 length = 16
 thickness = 1 
