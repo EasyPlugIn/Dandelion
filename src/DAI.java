@@ -12,7 +12,7 @@ import DANAPI.DAN;
 import DANAPI.DANAPI;
 
 public class DAI {
-    
+
     static final DANAPI dan_api = new DAN();
 	static InternalIDAAPI internal_ida_api;
 	static final String d_name = "Dandelion001";
@@ -43,19 +43,19 @@ public class DAI {
         Runtime.getRuntime().addShutdownHook(new Thread () {
             @Override
             public void run () {
-                DAI.deregister();
+                deregister();
             }
         });
 	}
-	
+
 	static public void deregister() {
         dan_api.deregister();
 	}
-	
+
 	static public void pull(String odf, JSONArray data) {
 	    internal_ida_api.write(odf, data);
 	}
-	
+
 	static class DANEventSubscriber extends DANAPI.AbstractODFReceiver {
 		public void receive (String feature, DAN.ODFObject odf_object) {
 			switch (odf_object.event) {
@@ -77,7 +77,7 @@ public class DAI {
 			}
 		}
 	}
-	
+
 	static class ODFReceiver extends DANAPI.AbstractODFReceiver {
 		@Override
 		public void receive (String odf, DAN.ODFObject odf_object) {
@@ -131,7 +131,7 @@ public class DAI {
 		String padding = message.startsWith(" ") || message.startsWith("[") ? "" : " ";
 		System.out.printf("[%s][%s]%s%s%n", dm_name, local_log_tag, padding, message);
 	}
-	
+
 	static void handle_error (String message) {
 		logging(message);
 	}
