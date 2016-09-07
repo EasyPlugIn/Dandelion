@@ -1,23 +1,26 @@
-BUILD_OUTPUT = build
-JAR_FILES = libs/CSMAPI.jar:libs/DANAPI.jar:libs/json-20160212.jar:libs/processing/core.jar
-CLASSPATH = lib-classes/
+OUTPUT_FOLDER = output
+JAR_FOLDER = libs
+CLASSPATH = ${OUTPUT_FOLDER}
 SRC_DIR = src
-MAIN_FILE = Dandelion.java
+MAIN_JAVA = Dandelion.java
 MANIFEST_FILE = Dandelion.mf
+OUTPUT_JAR = dandelion.jar
 
-all: classes jar
 
-classes:
-	# javac -classpath libs/CSMAPI.jar:libs/DANAPI.jar:libs/json-20160212.jar:libs/processing/core.jar: -d build src/*.java
-	mkdir $(BUILD_OUTPUT)
-	javac -classpath $(CLASSPATH) -d $(BUILD_OUTPUT) -sourcepath $(SRC_DIR) $(SRC_DIR)/$(MAIN_FILE)
+${OUTPUT_JAR}: ${OUTPUT_FOLDER} LIB_CLASS_FILES SOURCE_CLASS_FILES ${MANIFEST_FILE}
+	cd ${OUTPUT_FOLDER} && jar cfm ${OUTPUT_JAR} ${MANIFEST_FILE} *.class */*.class */**/*.class
 
-jar:
-	echo "Manifest-Version: 1.0" > $(BUILD_OUTPUT)/$(MANIFEST_FILE)
-	echo "Class-Path: ." >> $(BUILD_OUTPUT)/$(MANIFEST_FILE)
-	echo "Main-Class: Dandelion" >> $(BUILD_OUTPUT)/$(MANIFEST_FILE)
-	cp -r lib-classes/* $(BUILD_OUTPUT)
-	cd $(BUILD_OUTPUT) && jar cfm output2.jar Dandelion.mf *.class */*.class */**/*.class
+${OUTPUT_FOLDER}:
+	mkdir $@
+
+LIB_CLASS_FILES: ${OUTPUT_FOLDER}
+	sh build-tools/setup-jar.sh ${JAR_FOLDER} ${OUTPUT_FOLDER}
+
+SOURCE_CLASS_FILES: ${OUTPUT_FOLDER}
+	javac -classpath ${CLASSPATH} -d ${OUTPUT_FOLDER} -sourcepath ${SRC_DIR} ${SRC_DIR}/${MAIN_JAVA}
+
+${MANIFEST_FILE}: ${OUTPUT_FOLDER}
+	sh build-tools/setup-manifest.sh ${OUTPUT_FOLDER}/${MANIFEST_FILE}
 
 clean:
-	rm -rf build
+	rm -rf ${OUTPUT_FOLDER}
