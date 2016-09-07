@@ -1,0 +1,8 @@
+endpoint=http://localhost:9999
+bgcolor = 0
+length = 16
+thickness = 1 
+rate = 20
+display_width = 1000
+display_height = 700
+
