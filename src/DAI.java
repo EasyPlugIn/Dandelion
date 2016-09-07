@@ -13,9 +13,9 @@ import java.io.Console;
 
 @SuppressWarnings("serial")
 public class DAI implements DAN.DAN2DAI {
-	static final String config_filename = "config.txt";
-	static DAI dai = new DAI();
-	static IDA ida = new IDA();
+    static final String config_filename = "config.txt";
+    static DAI dai = new DAI();
+    static IDA ida = new IDA();
     static DAN dan = new DAN();
     static String d_name = "";
     static String u_name = "yb";
@@ -30,7 +30,7 @@ public class DAI implements DAN.DAN2DAI {
     static float rate = 20;    //stalk_increase_rate
     static int display_width = 1000;
     static int display_height = 700;
-	static abstract class DF {
+    static abstract class DF {
         public DF (String name) {
             this.name = name;
         }
@@ -38,7 +38,7 @@ public class DAI implements DAN.DAN2DAI {
         public boolean selected;
     }
 
-	static abstract class IDF extends DF {
+    static abstract class IDF extends DF {
         public IDF (String name) {
             super(name);
         }
@@ -62,8 +62,6 @@ public class DAI implements DAN.DAN2DAI {
     static ArrayList<DF> df_list = new ArrayList<DF>();
     static ArrayList<Command> cmd_list = new ArrayList<Command>();
     static boolean suspended = true;
-
-
 
 
     static void add_df (DF... dfs) {
@@ -117,7 +115,7 @@ public class DAI implements DAN.DAN2DAI {
         public void run(final JSONArray df_status_list,
                          final JSONArray updated_df_status_list) {
             if(df_status_list != null && updated_df_status_list == null) {
-            	final String flags = df_status_list.getString(0);
+                final String flags = df_status_list.getString(0);
                 for(int i = 0; i < flags.length(); i++) {
                     if(flags.charAt(i) == '0') {
                         df_list.get(i).selected = false;
@@ -125,23 +123,23 @@ public class DAI implements DAN.DAN2DAI {
                         df_list.get(i).selected = true;
                     }
                 }
-	            get_cmd("SET_DF_STATUS_RSP").run(
-            		null,
-            		new JSONArray(){{
-		            	put(flags);
-		            }}
-        		);
+                get_cmd("SET_DF_STATUS_RSP").run(
+                    null,
+                    new JSONArray(){{
+                        put(flags);
+                    }}
+                );
             }
             else if(df_status_list == null && updated_df_status_list != null) {
-            	dan.push(
-                		"Control",
-                		new JSONArray(){{
-    	                	put("SET_DF_STATUS_RSP");
-    	                	put(new JSONObject(){{
-    	                		put("cmd_params", updated_df_status_list);
-    	                	}});
-                		}}
-            		);
+                dan.push(
+                        "Control",
+                        new JSONArray(){{
+                            put("SET_DF_STATUS_RSP");
+                            put(new JSONObject(){{
+                                put("cmd_params", updated_df_status_list);
+                            }});
+                        }}
+                    );
             } else {
                 System.out.println("Both the df_status_list and the updated_df_status_list are null");
             }
@@ -155,25 +153,25 @@ public class DAI implements DAN.DAN2DAI {
         public void run(final JSONArray dl_cmd_params,
                          final JSONArray exec_result) {
             if(dl_cmd_params != null && exec_result == null) {
-            	suspended = false;
+                suspended = false;
                 get_cmd("RESUME_RSP").run(
-                	null,
-                	new JSONArray(){{
-                	    put("OK");
-	            }});
+                    null,
+                    new JSONArray(){{
+                        put("OK");
+                }});
             }
             else if(dl_cmd_params == null && exec_result != null) {
-            	dan.push(
-                		"Control",
-                		new JSONArray(){{
-    	                	put("RESUME_RSP");
-    	                	put(new JSONObject(){{
-    	                		put("cmd_params", exec_result);
-    	                	}});
-                		}}
-            		);
+                dan.push(
+                        "Control",
+                        new JSONArray(){{
+                            put("RESUME_RSP");
+                            put(new JSONObject(){{
+                                put("cmd_params", exec_result);
+                            }});
+                        }}
+                    );
             } else {
-            	System.out.println("Both the dl_cmd_params and the exec_result are null!");
+                System.out.println("Both the dl_cmd_params and the exec_result are null!");
             }
         }
     }
@@ -185,46 +183,46 @@ public class DAI implements DAN.DAN2DAI {
         public void run(JSONArray dl_cmd_params,
                          final JSONArray exec_result) {
             if(dl_cmd_params != null && exec_result == null) {
-            	suspended = true;
+                suspended = true;
                 get_cmd("SUSPEND_RSP").run(
-                	null,
-                	new JSONArray(){{
-                		put("OK");
-    	        }});
+                    null,
+                    new JSONArray(){{
+                        put("OK");
+                }});
             }
             else if(dl_cmd_params == null && exec_result != null) {
-            	dan.push(
-                		"Control",
-                		new JSONArray(){{
-    	                	put("SUSPEND_RSP");
-    	                	put(new JSONObject(){{
-    	                		put("cmd_params", exec_result);
-    	                	}});
-                		}}
-            		);
+                dan.push(
+                        "Control",
+                        new JSONArray(){{
+                            put("SUSPEND_RSP");
+                            put(new JSONObject(){{
+                                put("cmd_params", exec_result);
+                            }});
+                        }}
+                    );
             } else {
-            	System.out.println("Both the dl_cmd_params and the exec_result are null!");
+                System.out.println("Both the dl_cmd_params and the exec_result are null!");
             }
         }
     }
 
-	public void add_shutdownhook() {
-		Runtime.getRuntime().addShutdownHook(new Thread () {
+    public void add_shutdownhook() {
+        Runtime.getRuntime().addShutdownHook(new Thread () {
             @Override
             public void run () {
-            	deregister();
+                deregister();
             }
         });
-	}
+    }
 
-	/* deregister() */
-	public void deregister() {
-		dan.deregister();
-	}
+    /* deregister() */
+    public void deregister() {
+        dan.deregister();
+    }
 
-	@Override
-	public void pull(final String odf_name, final JSONArray data) {
-		if (odf_name.equals("Control")) {
+    @Override
+    public void pull(final String odf_name, final JSONArray data) {
+        if (odf_name.equals("Control")) {
             final String cmd_name = data.getString(0);
             JSONArray dl_cmd_params = data.getJSONObject(1).getJSONArray("cmd_params");
             Command cmd = get_cmd(cmd_name);
@@ -235,52 +233,34 @@ public class DAI implements DAN.DAN2DAI {
 
             /* Reports the exception to IoTtalk*/
             dan.push("Control", new JSONArray(){{
-            	put("UNKNOWN_COMMAND");
-            	put(new JSONObject(){{
-            		put("cmd_params", new JSONArray(){{
-            			put(cmd_name);
-            		}});
-            	}});
+                put("UNKNOWN_COMMAND");
+                put(new JSONObject(){{
+                    put("cmd_params", new JSONArray(){{
+                        put(cmd_name);
+                    }});
+                }});
             }});
         } else {
-        	ODF odf = ((ODF)get_df(odf_name));
-        	if (odf != null) {
-        		odf.pull(data);
+            ODF odf = ((ODF)get_df(odf_name));
+            if (odf != null) {
+                odf.pull(data);
                 return;
             }
 
             /* Reports the exception to IoTtalk*/
             dan.push("Control", new JSONArray(){{
-            	put("UNKNOWN_ODF");
-            	put(new JSONObject(){{
-            		put("cmd_params", new JSONArray(){{
-            			put(odf_name);
-            		}});
-            	}});
+                put("UNKNOWN_ODF");
+                put(new JSONObject(){{
+                    put("cmd_params", new JSONArray(){{
+                        put(odf_name);
+                    }});
+                }});
             }});
         }
-	}
+    }
 
 
-//   static private String get_config_ec () {
-//        try {
-//            /* assume that the config file has only one line,
-//             *  which is the IP address of the EC (without port number)*/
-//            BufferedReader br = new BufferedReader(new FileReader(config_filename));
-//            try {
-//                String line = br.readLine();
-//                if (line != null) {
-//                    return line;
-//                }
-//                return "localhost";
-//            } finally {
-//                br.close();
-//            }
-//        } catch (IOException e) {
-//            return "localhost";
-//        }
-//    }
-   static private void load_config () {
+    static private void load_config () {
        BufferedReader br = null;
        try {
            br = new BufferedReader(new FileReader(config_filename));
@@ -310,40 +290,40 @@ public class DAI implements DAN.DAN2DAI {
    }
 
    /*setting the parameter of dandelion*/
-   static private void set_config_value (String key, String text) {
-       switch (key) {
-       case "endpoint":
-           endpoint = text;
-           if (!endpoint.startsWith("http://")) {
-               endpoint = "http://" + endpoint;
-           }
-           if (endpoint.length() - endpoint.replace(":", "").length() == 1) {
-               endpoint += ":9999";
-           }
-           break;
-       case "bgcolor":
-           bgcolor = Float.parseFloat(text);
-           break;
-       case "length":
-           length = Float.parseFloat(text);
-           break;
-       case "thickness":
-           thickness = Float.parseFloat(text);
-           break;
-       case "rate":
-           rate = Float.parseFloat(text);
-           break;
-       case "display_width":
-           display_width = Integer.parseInt(text);
-           break;
-       case "display_height":
-           display_height = Integer.parseInt(text);
-           break;
-       default:
-           System.out.printf("Unknown setting: [%s = %s]\n", key, text);
-           break;
-       }
-   }
+    static private void set_config_value (String key, String text) {
+        switch (key) {
+            case "endpoint":
+                endpoint = text;
+                if (!endpoint.startsWith("http://")) {
+                    endpoint = "http://" + endpoint;
+                }
+                if (endpoint.length() - endpoint.replace(":", "").length() == 1) {
+                    endpoint += ":9999";
+                }
+                break;
+            case "bgcolor":
+                bgcolor = Float.parseFloat(text);
+                break;
+            case "length":
+                length = Float.parseFloat(text);
+                break;
+            case "thickness":
+                thickness = Float.parseFloat(text);
+                break;
+            case "rate":
+                rate = Float.parseFloat(text);
+                break;
+            case "display_width":
+                display_width = Integer.parseInt(text);
+                break;
+            case "display_height":
+                display_height = Integer.parseInt(text);
+                break;
+            default:
+                System.out.printf("Unknown setting: [%s = %s]\n", key, text);
+                break;
+        }
+    }
 
 
     /* The main() function */
@@ -392,12 +372,12 @@ public class DAI implements DAN.DAN2DAI {
             super("Mouse");
         }
         public void push(double x, double y) {
-        	if(selected && !suspended) {
-	        	JSONArray data = new JSONArray();
-	            data.put(x);
-	            data.put(y);
-	            dan.push(name, data);
-        	}
+            if(selected && !suspended) {
+                JSONArray data = new JSONArray();
+                data.put(x);
+                data.put(y);
+                dan.push(name, data);
+            }
         }
     }
 
@@ -409,12 +389,12 @@ public class DAI implements DAN.DAN2DAI {
         public void pull(JSONArray data) {
             System.out.println("Size: "+ data.toString());
             /* parse data from packet, assign to every yi */
-        	if(selected && !suspended) {
-        		ida.size = (float)data.getDouble(0);
-        	}
-        	else {
+            if(selected && !suspended) {
+                ida.size = (float)data.getDouble(0);
+            }
+            else {
                 ida.size = 0; // default value
-        	}
+            }
         }
     }
     static class Angle extends ODF {
@@ -422,12 +402,12 @@ public class DAI implements DAN.DAN2DAI {
             super("Angle");
         }
         public void pull(JSONArray data) {
-        	if(selected && !suspended) {
-        	    ida.angle = (float)data.getDouble(0);
-        	}
-        	else {
+            if(selected && !suspended) {
+                ida.angle = (float)data.getDouble(0);
+            }
+            else {
                 ida.angle = 0f;
-        	}
+            }
         }
     }
     static class Color extends ODF {
@@ -435,16 +415,16 @@ public class DAI implements DAN.DAN2DAI {
             super("Color-O");
         }
         public void pull(JSONArray data) {
-        	if(selected && !suspended) {
-        	    ida.color_r = data.getInt(0);
-        	    ida.color_g = data.getInt(1);
-        	    ida.color_b = data.getInt(2);
-        	}
-        	else {
-        		ida.color_r = 0;
-        	    ida.color_g = 0;
-        	    ida.color_b = 0;
-        	}
+            if(selected && !suspended) {
+                ida.color_r = data.getInt(0);
+                ida.color_g = data.getInt(1);
+                ida.color_b = data.getInt(2);
+            }
+            else {
+                ida.color_r = 0;
+                ida.color_g = 0;
+                ida.color_b = 0;
+            }
         }
     }
 
@@ -456,7 +436,7 @@ public class DAI implements DAN.DAN2DAI {
     }
     static void init_dfs () {
         add_df(
-    		new Mouse(),
+            new Mouse(),
             new Size(),
             new Angle(),
             new Color()
@@ -466,29 +446,29 @@ public class DAI implements DAN.DAN2DAI {
 
     /* IDA Class */
     public static class IDA extends PApplet{
-    	public float size;
-    	public float angle;
-    	public float color_r = 255;
-    	public float color_g = 255;
-    	public float color_b = 255;
+        public float size;
+        public float angle;
+        public float color_r = 255;
+        public float color_g = 255;
+        public float color_b = 255;
 
-    	public void iot_app() {
-    		PApplet.runSketch(new String[]{d_name}, this);
-    	};
+        public void iot_app() {
+            PApplet.runSketch(new String[]{d_name}, this);
+        };
 
-    	public float approximate (float source, float target) {
-    		return source + (target - source) / 100;
-    	}
+        public float approximate (float source, float target) {
+            return source + (target - source) / 100;
+        }
 
         int TEXT_SIZE = 15;
-    	int text_lines;
-    	public void stack_text (String format, Object... args) {
-    	    if (format.equals("")) {
-    	        text_lines = 0;
-    	    }
-    	    text(String.format(format, args), 0, display_height - text_lines * TEXT_SIZE);
-    	    text_lines += 1;
-    	}
+        int text_lines;
+        public void stack_text (String format, Object... args) {
+            if (format.equals("")) {
+                text_lines = 0;
+            }
+            text(String.format(format, args), 0, display_height - text_lines * TEXT_SIZE);
+            text_lines += 1;
+        }
 
         final int width = display_width;//1920
         final int height = display_height;//1080
@@ -508,10 +488,9 @@ public class DAI implements DAN.DAN2DAI {
             size(display_width, display_height);
         }
 
-
         @Override
         public void draw(){
-        	if (size > 10) {
+            if (size > 10) {
                 size = 10;
             }
             if (angle > 120) {
@@ -529,7 +508,7 @@ public class DAI implements DAN.DAN2DAI {
             if(bgcolor==255)
                 fill(0);
             else
-            	fill(255);
+                fill(255);
             textSize(TEXT_SIZE);
             stack_text("");
             stack_text("Color: (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f)", color_r, color_g, color_b, current_color_r, current_color_g, current_color_b);
@@ -545,7 +524,7 @@ public class DAI implements DAN.DAN2DAI {
 
             void angle_branch (int level) {
                 if (level >= current_size) {
-            	    return;
+                    return;
             }
             float parameter = ((float)level / rate) + 1;
             float alpha;
