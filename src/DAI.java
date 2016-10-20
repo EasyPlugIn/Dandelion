@@ -410,7 +410,7 @@ public class DAI implements DAN.DAN2DAI {
             System.out.println("Size: "+ data.toString());
             /* parse data from packet, assign to every yi */
         	if(selected && !suspended) {
-        		ida.size = (float)data.getDouble(0);
+        		ida.size = (int)data.getDouble(0);
         	}
         	else {
                 ida.size = 0; // default value
@@ -464,124 +464,131 @@ public class DAI implements DAN.DAN2DAI {
         );
     }
     
+    /*--------------------------------------------------*/
     /* IDA Class */
     public static class IDA extends PApplet{
-    	public float size;
-    	public float angle;
-    	public float color_r = 255;
-    	public float color_g = 255;
-    	public float color_b = 255;
+    	// ODFs
+    	public int size = 0;
+    	public float angle = 0;
+    	public int color_r = 255;
+    	public int color_g = 255;
+    	public int color_b = 255;
     	
     	public void iot_app() {
     		PApplet.runSketch(new String[]{d_name}, this);
     	};
-    	
-    	public float approximate (float source, float target) {
-    		return source + (target - source) / 100;
-    	}
-
-        int TEXT_SIZE = 15;
-    	int text_lines;
-    	public void stack_text (String format, Object... args) {
-    	    if (format.equals("")) {
-    	        text_lines = 0;
-    	    }
-    	    text(String.format(format, args), 0, display_height - text_lines * TEXT_SIZE);
-    	    text_lines += 1;
-    	}
-    	
-        final int width = display_width;//1920
-        final int height = display_height;//1080
-        final float s2 = 17;
-        final float s3 = s2 / sin(radians(45));
-        final float s1 = s2;
-        final float b_x = s2 * cos(radians(60));
-        final float b_y = s2 * sin(radians(60));
-        final float BACKGROUND_GRAY_LEVEL = 255f;
-        final float FOREGROUND_GRAY_LEVEL = 0f;
-        float current_angle, current_size;
-        float current_color_r, current_color_g, current_color_b;
+    	    	
+    	// Dandelion animation
+        //final int width = display_width;
+        //final int height = display_height;
+        //final int s0 = display_height / 2;
+        final int s1 = 28;
+        final int s2 = (int)((float)s1 / 1.618);  // golden ratio 1.618
+        final int s3 = (int)((float)s2 * 0.618);  // golden ratio 0.618
+        final float gamma = 115;  // included angle
+        // Dandelion animation (others)
+        int max_size = 10;
+        float max_angle = 120;
+        float current_angle = 0;
+        float current_size = 0;
+        float current_color_r = 0;
+        float current_color_g = 0;
+        float current_color_b = 0;
+        float step = 4;
+        int TEXT_SIZE = 16;
+        String textinfo = "";
  
         @Override
+        /* setup() */
         public void setup() {
             smooth();
             size(display_width, display_height);
         }
 
-
         @Override
+        /* draw() */
         public void draw(){
-        	if (size > 10) {
-                size = 10;
-            }
-            if (angle > 120) {
-                angle = angle%120;
-            }
-            current_size = approximate(current_size, size);
-            current_angle = approximate(current_angle, angle);
-            current_color_r = approximate(current_color_r, color_r);
-            current_color_g = approximate(current_color_g, color_g);
-            current_color_b = approximate(current_color_b, color_b);
-            strokeWeight(thickness);
-            background(bgcolor);
-            textSize(8);
-            text(info, 0, display_height - 8);
-            if(bgcolor==255)
-                fill(0);
-            else
-            	fill(255);
-            textSize(TEXT_SIZE);
-            stack_text("");
-            stack_text("Color: (%.2f, %.2f, %.2f) (%.2f, %.2f, %.2f)", color_r, color_g, color_b, current_color_r, current_color_g, current_color_b);
-            stack_text("ODF Angle: %f (%f)", angle, current_angle);
-            stack_text("ODF Size: %f (%f)", size, current_size);
-            stack_text("Device name: %s", d_name);
-                     
-            stroke((float)current_color_r, (float)current_color_g, (float)current_color_b, 255);
-            translate(display_width / 2, display_height * 5 / 8);
-            line(0, 0, 0, display_height * 3 / 8);
-            angle_branch(0);
+        	if (size > max_size) { size = max_size; }
+            if (angle > max_angle) { angle = max_angle; }
+            
+            current_size += ((float)size - current_size) / step;
+            current_angle += (angle - current_angle) / step;
+            current_color_r += ((float)color_r - current_color_r) / step;
+            current_color_g += ((float)color_g - current_color_g) / step;
+            current_color_b += ((float)color_b - current_color_b) / step;
+            
+            background((int)bgcolor);
+                        
+            // Showing info on display layout
+            textSize(TEXT_SIZE - 3);          
+            fill(abs(bgcolor - 255) / 2);
+            textinfo = "Display width x height = " + display_width + " x " + display_height;            
+            text(textinfo, 10, TEXT_SIZE + 10);
+            textinfo = "(s0, s1, s2, s3) = (" + display_height / 2 + ", " + s1 + ", " + s2 + ", " + s3 + ")" ;
+            text(textinfo, 10, 2 * TEXT_SIZE + 10);
+            textinfo = "Device name = " + d_name;
+            text(textinfo, 10, display_height - 3 * TEXT_SIZE - 10);
+            textinfo = "ODF Size = " +  size + "  ,  now: " + current_size;
+            text(textinfo, 10, display_height - 2 * TEXT_SIZE - 10);
+            textinfo = "ODF Angle = " +  angle + "  ,  now: " + current_angle;
+            text(textinfo, 10, display_height - 1 * TEXT_SIZE - 10);
+            textinfo = "ODF Color-O (R, G, B) = (" + color_r + ", " + color_g + ", " + color_b + ")"
+            		+ "  ,  now: (" + round(current_color_r) + ", " + round(current_color_g) + ", " + round(current_color_b) + ")";
+            text(textinfo, 10, display_height - 0 * TEXT_SIZE - 10);
+              
+            translate(display_width / 2, display_height * 4 / 8);
+            stroke(round(current_color_r), round(current_color_g), round(current_color_b));
+            strokeWeight(thickness);          
+            line(0, 0, 0, display_height * 4 / 8);
+            grow(0);
         }
-
-            void angle_branch (int level) {
+        
+        /* grow() */
+            void grow (int level) {
                 if (level >= current_size) {
-            	    return; 
+        	        return; 
+                }
+                int alpha = 0;
+                float parameter_s = ((float)level / 20) + 1;
+                float parameter_g = ((float)level / 35) + 1;
+                
+                int target_x = round(s1 * parameter_s * cos(radians(gamma * parameter_g / 2)) );
+                int target_y = round(-s1 * parameter_s * sin(radians(gamma * parameter_g / 2)) );
+                
+                // transparency of outermost layer
+                if (level + 1 > current_size) { 
+                    alpha = round((current_size - (int)current_size) * 255);
+                } else {
+                    alpha = 255;
+                }
+                // right child
+                pushMatrix();
+                rotate(radians(-current_angle));
+                stroke(round(current_color_r), round(current_color_g), round(current_color_b), alpha);
+                line(0, 0, s2, 0);
+                line(0, 0, -s2 * cos(radians(60)), -s2 * sin(radians(60)));
+                line(0, 0, target_x, target_y);
+                translate(target_x, target_y); 
+                rotate(radians(180 - gamma * parameter_g));
+                line(0, 0, s2, 0);
+                line(0, 0, -s2 * cos(radians(60)), s2 * sin(radians(60)));
+                grow(level + 1); 
+                popMatrix();
+                // left child
+                pushMatrix();
+                rotate(radians(current_angle));
+                stroke(round(current_color_r), round(current_color_g), round(current_color_b), alpha);
+                line(0, 0, -s2, 0);
+                line(0, 0, s2 * cos(radians(60)), -s2 * sin(radians(60)));
+                line(0, 0, -target_x, target_y);
+                translate(-target_x, target_y);
+                rotate(-radians(180 - gamma * parameter_g));
+                line(0, 0, -s2, 0);
+                line(0, 0, s2 * cos(radians(60)), s2 * sin(radians(60)));
+                grow(level + 1);
+                popMatrix();
             }
-            float parameter = ((float)level / rate) + 1;
-            float alpha;
-            float degree_a = degrees(acos(0.5f * sin(45)*(2*parameter - 1)));
-            float target_x = 2 * length * cos(radians(120 - degree_a)) * parameter;
-            float target_y = -2 * length * sin(radians(120 - degree_a)) * parameter;
-            if (level + 1 > current_size) { // outest layer
-                alpha = (float)(current_size - (int)current_size) * 255;
-            } else {
-                alpha = 255;
-            }
-            pushMatrix();
-            rotate(radians(-current_angle));
-            stroke(current_color_r,current_color_g,current_color_b, alpha);
-            line(0, 0, s2, 0);
-            line(0, 0, -b_x, -b_y);
-            line(0, 0, target_x, target_y);
-            translate(target_x, target_y);
-            rotate(radians(degree_a));
-            line(0, 0, s2, 0);
-            line(0, 0, -b_x, b_y);
-            angle_branch(level + 1); 
-            popMatrix();
-            pushMatrix();
-            rotate(radians(current_angle));
-            stroke(current_color_r, current_color_g, current_color_b, alpha);
-            line(0, 0, -s2, 0);
-            line(0, 0, b_x, -b_y);
-            line(0, 0, -target_x, target_y);
-            translate(-target_x, target_y);
-            rotate(-radians(degree_a));
-            line(0, 0, -s2, 0);
-            line(0, 0, b_x, b_y);
-            angle_branch(level + 1);
-            popMatrix();
-        }
+ 
         @Override
         public void mouseMoved () {
             ((Mouse) get_df("Mouse")).push(mouseX, mouseY);
