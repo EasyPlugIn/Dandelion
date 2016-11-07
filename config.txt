@@ -1,8 +1,8 @@
-endpoint = http://localhost:9999
+endpoint = http://210.61.2.241:9999
 bgcolor = 0
 length = 16
 thickness = 0.8 
-rate = 20
+step = 100
 display_width = 1024
 display_height = 750
 

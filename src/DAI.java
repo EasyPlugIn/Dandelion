@@ -27,7 +27,7 @@ public class DAI implements DAN.DAN2DAI {
     static float bgcolor = 0;
     static float length = 16;  //stalk_len
     static float thickness = 1;
-    static float rate = 20;    //stalk_increase_rate
+    static float step = 20;    //stalk_increase_rate
     static int display_width = 1000;
     static int display_height = 700;
 	static abstract class DF {
@@ -62,9 +62,6 @@ public class DAI implements DAN.DAN2DAI {
     static ArrayList<DF> df_list = new ArrayList<DF>();
     static ArrayList<Command> cmd_list = new ArrayList<Command>();
     static boolean suspended = true;
-    
-    
-
     
     static void add_df (DF... dfs) {
         for (DF df: dfs) {
@@ -107,8 +104,7 @@ public class DAI implements DAN.DAN2DAI {
         System.out.println("Device feature" + df_name + "is not found");
         return null;
     }
-    
-    
+     
     /* Default command-1: SET_DF_STATUS */
     static class SET_DF_STATUS extends Command {
         public SET_DF_STATUS() {
@@ -260,8 +256,7 @@ public class DAI implements DAN.DAN2DAI {
             }});
         }
 	}
-    
-    
+        
 //   static private String get_config_ec () {
 //        try {
 //            /* assume that the config file has only one line,
@@ -330,8 +325,8 @@ public class DAI implements DAN.DAN2DAI {
        case "thickness":
            thickness = Float.parseFloat(text);
            break;
-       case "rate":
-           rate = Float.parseFloat(text);
+       case "step":
+           step = Float.parseFloat(text);
            break;
        case "display_width":
            display_width = Integer.parseInt(text);
@@ -345,7 +340,6 @@ public class DAI implements DAN.DAN2DAI {
        }
    }
    
-
     /* The main() function */
     public static void main(String[] args) {
         add_command(
@@ -459,8 +453,7 @@ public class DAI implements DAN.DAN2DAI {
     		new Mouse(),
             new Size(),
             new Angle(),
-            new Color()
-            
+            new Color()         
         );
     }
     
@@ -494,7 +487,6 @@ public class DAI implements DAN.DAN2DAI {
         float current_color_r = 0;
         float current_color_g = 0;
         float current_color_b = 0;
-        float step = 4;
         int TEXT_SIZE = 16;
         String textinfo = "";
  
